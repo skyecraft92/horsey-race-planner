@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Horsey Race Planner v3.4</title>
+<title>Horsey Race Planner v3.5</title>
 <style>
 :root{
   --bg:#0b1020; --panel:#121a2b; --panel2:#0f1726; --border:#23304a;
@@ -16,7 +16,7 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sa
 header{padding:18px 18px 12px;border-bottom:1px solid var(--border);background:rgba(15,23,38,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
 h1{margin:0 0 4px;font-size:22px}
 header p{margin:0;color:var(--muted);font-size:13px}
-.tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border);background:#0d1627;position:sticky;top:72px;z-index:19}
+.tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border);background:#0d1627;position:sticky;top:72px;z-index:19;flex-wrap:wrap}
 .tab-btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
 .tab-btn.active{background:#17345f;color:#fff;border-color:var(--accent)}
 .page{padding:16px;max-width:1520px;margin:0 auto}
@@ -70,19 +70,21 @@ button:active{transform:translateY(1px)}
 .toast{position:fixed;right:16px;bottom:16px;background:#152338;border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none;z-index:40}
 .toast.show{opacity:1;transform:translateY(0)}
 .hidden{display:none}
+.status-ok{color:var(--good)} .status-warn{color:var(--warn)} .status-bad{color:var(--bad)}
 @media (max-width:1060px){.layout{grid-template-columns:1fr}.side{position:static}.metrics{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:720px){.metrics{grid-template-columns:1fr 1fr}.row,.sim-controls{grid-template-columns:1fr}.gene-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
-  <h1>Horsey Race Planner v3.4</h1>
-  <p>Fuller drag-and-drop gene set, mobile tap fallback, simulator, saves, JSON import/export. Still gloriously static.</p>
+  <h1>Horsey Race Planner v3.5</h1>
+  <p>Fuller drag-and-drop gene set, game-format copy/paste, simulator, saves, JSON import/export. Finally speaks fluent clipboard.</p>
 </header>
 
 <nav class="tabs">
   <button id="tab-editor-btn" class="tab-btn active" onclick="switchTab('editor')">🧬 Editor</button>
   <button id="tab-sim-btn" class="tab-btn" onclick="switchTab('sim')">🏇 Simulator</button>
+  <button id="tab-clipboard-btn" class="tab-btn" onclick="switchTab('clipboard')">📋 Game Clipboard</button>
   <button id="tab-history-btn" class="tab-btn" onclick="switchTab('history')">📜 History</button>
 </nav>
 
@@ -203,6 +205,30 @@ button:active{transform:translateY(1px)}
     </main>
   </section>
 
+  <section id="tab-clipboard" class="layout hidden">
+    <aside class="card side">
+      <div class="out">
+        <strong>Game Bridge</strong>
+        <div class="small" style="margin-top:6px">Copy the exact genome block the game expects, or paste one from the game and map it back into the editor.</div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button onclick="copyGameFormat()">Copy Game Format</button>
+        <button class="secondary" onclick="pasteGameFormatPrompt()">Paste Game Format</button>
+      </div>
+      <div class="out">
+        <strong>Validation</strong>
+        <div class="mono" id="validationOut">No validation run yet.</div>
+      </div>
+    </aside>
+    <main class="card">
+      <div class="out">
+        <strong>Game Clipboard Format</strong>
+        <div class="small" style="margin:6px 0 10px">This is the exact helix-style block for copy/paste workflows.</div>
+        <textarea id="gameFormatArea" spellcheck="false"></textarea>
+      </div>
+    </main>
+  </section>
+
   <section id="tab-history" class="layout hidden">
     <aside class="card side">
       <div class="out">
@@ -224,11 +250,20 @@ button:active{transform:translateY(1px)}
 <div class="toast" id="toast">Done</div>
 
 <script>
-const BUILD_KEY = 'hrp_v34_builds';
-const HISTORY_KEY = 'hrp_v34_mutations';
+const BUILD_KEY = 'hrp_v35_builds';
+const HISTORY_KEY = 'hrp_v35_mutations';
+const HELIX_LENGTHS = [10,13,13,15,11,8,10,8,11,11,13,15,13,11,11,13,15,11,11,16];
+
+const GENE_SPECS = {
+  SIZE:[6,0], HEAD_SIZE:[10,0], LEG_LENGTH:[8,1], TAIL_EXISTS:[7,1], HAS_MOUTH:[12,1], COAT_SHEEN:[5,3], MANE_DENSITY:[9,3], EYE_COLOUR:[11,5],
+  MUSCLE_USE:[2,0], SPEED_FACTOR:[18,1], BREAK_FORCE:[4,9], ACCEL_CURVE:[3,5], STRIDE_FREQ:[4,2], OXYGEN_UPTAKE:[13,4], BONE_DENSITY:[6,5],
+  LOCO_SYNC:[18,10], SPINAL_LOCO:[18,4], LIMP:[1,12], BRAIN_SPASTIC:[2,12], NECK_STIFF:[0,9], STIFF_JOINTS:[3,14], OLD_AGE:[1,10], SPINE_CURVE:[0,5],
+  RAMPAGE:[18,3], NARCOLEPSY:[18,0], HIGH_INTELLECT:[18,5], OMNIVORE:[1,11], SOCIAL_DRIVE:[9,7], FEAR_RESPONSE:[7,5], JOCKEY_BOND:[10,6],
+  FLU_IMMUNITY:[12,12], JOINT_REGEN:[14,3], CARDIAC_ENDURE:[15,7], TENDON_TOUGH:[16,2], HEAT_TOLERANCE:[19,8],
+  PAIN_THRESH:[0,4], ADREN_SURGE:[2,8], GRAVITY_SENSE:[5,6], TEMP_FACTOR:[3,2],
+};
 
 const genes = [
-  // Appearance
   {name:'SIZE', group:'appearance', desc:'Body scale baseline. T keeps it compact and race-legal.', tip:'C gets suspiciously large.', pick:'T', score:{A:[0,1,2],T:[0,2,0],C:[0,0,4],G:[0,1,1]}},
   {name:'HEAD_SIZE', group:'appearance', desc:'Keeps the head from becoming a public enquiry.', tip:'T is all forehead and poor choices.', pick:'A', score:{A:[0,2,0],T:[0,0,4],C:[0,0,5],G:[0,1,1]}},
   {name:'LEG_LENGTH', group:'appearance', desc:'Stride and proportions.', tip:'G looks and runs correctly.', pick:'G', score:{A:[2,3,1],T:[0,0,5],C:[4,2,3],G:[3,4,0]}},
@@ -238,7 +273,6 @@ const genes = [
   {name:'MANE_DENSITY', group:'appearance', desc:'A flowing mane or a sensible trim.', tip:'G means the mane arrives before the horse.', pick:'C', score:{A:[0,1,0],T:[1,1,0],C:[1,1,0],G:[-1,0,2]}},
   {name:'EYE_COLOUR', group:'appearance', desc:'Purely cosmetic, but unnervingly persuasive.', tip:'G heterochromia adds menace.', pick:'A', score:{A:[0,0,0],T:[0,0,0],C:[0,0,0],G:[1,0,0]}},
 
-  // Performance
   {name:'MUSCLE_USE', group:'performance', desc:'Core force multiplier. Big one.', tip:'G is the professional answer.', pick:'G', score:{A:[20,6,2],T:[5,4,0],C:[35,8,6],G:[35,8,6]}},
   {name:'SPEED_FACTOR', group:'performance', desc:'Primary speed driver.', tip:'G is peak speed.', pick:'G', score:{A:[28,6,2],T:[5,4,0],C:[18,5,1],G:[40,8,4]}},
   {name:'BREAK_FORCE', group:'performance', desc:'Stamina drain. T or G is marathon nonsense.', tip:'The horse simply refuses to get tired.', pick:'T', score:{A:[5,5,1],T:[25,12,2],C:[2,4,1],G:[25,12,2]}},
@@ -247,7 +281,6 @@ const genes = [
   {name:'OXYGEN_UPTAKE', group:'performance', desc:'Lung efficiency under load.', tip:'G is elite aerobic capacity.', pick:'G', score:{A:[5,4,0],T:[2,3,0],C:[10,5,1],G:[12,6,1]}},
   {name:'BONE_DENSITY', group:'performance', desc:'Structural integrity for hard tracks.', tip:'T meets one pebble and writes its resignation.', pick:'C', score:{A:[4,6,2],T:[-2,-4,8],C:[8,10,0],G:[6,12,0]}},
 
-  // Stability
   {name:'LOCO_SYNC', group:'stability', desc:'Whether the gait is coordinated or a legal argument.', tip:'T is saintly.', pick:'T', score:{A:[6,5,10],T:[10,30,0],C:[6,5,10],G:[6,5,10]}},
   {name:'SPINAL_LOCO', group:'stability', desc:'Standard quadruped vs biomechanical jazz.', tip:'C is fast; A is interpretive dance.', pick:'T', score:{A:[-8,-20,20],T:[2,10,6],C:[10,25,0],G:[10,25,0]}},
   {name:'LIMP', group:'stability', desc:'A visible limp is not ideal for racing.', tip:'C is brave but misguided.', pick:'A', score:{A:[8,20,0],T:[8,20,0],C:[-20,-30,20],G:[-10,-12,8]}},
@@ -257,7 +290,6 @@ const genes = [
   {name:'OLD_AGE', group:'stability', desc:'Progressive degradation over time.', tip:'G becomes nostalgic by lap two.', pick:'T', score:{A:[6,16,0],T:[6,16,0],C:[10,6,6],G:[-8,-10,10]}},
   {name:'SPINE_CURVE', group:'stability', desc:'Spinal alignment and balance.', tip:'A is biomechanically smug.', pick:'A', score:{A:[8,14,0],T:[-2,-5,8],C:[4,7,2],G:[6,10,1]}},
 
-  // Behavior
   {name:'RAMPAGE', group:'behavior', desc:'Disqualified for aggressive conduct if you are unlucky. Or lucky, depending on taste.', tip:'G is entertaining, not competitive.', pick:'A', score:{A:[6,18,0],T:[6,18,0],C:[6,18,0],G:[-12,-20,24]}},
   {name:'NARCOLEPSY', group:'behavior', desc:'The horse may decide the race is a nap opportunity.', tip:'G is catastrophic and very funny.', pick:'A', score:{A:[8,20,0],T:[8,20,0],C:[8,20,0],G:[-20,-30,28]}},
   {name:'HIGH_INTELLECT', group:'behavior', desc:'Can refuse to race on philosophical grounds.', tip:'T or G means opinions.', pick:'A', score:{A:[8,18,0],T:[2,8,10],C:[8,18,0],G:[2,8,10]}},
@@ -266,14 +298,12 @@ const genes = [
   {name:'FEAR_RESPONSE', group:'behavior', desc:'Startle threshold.', tip:'G can be defeated by a flag.', pick:'A', score:{A:[8,16,0],T:[6,12,1],C:[4,8,2],G:[-8,-14,12]}},
   {name:'JOCKEY_BOND', group:'behavior', desc:'Responsiveness to rider commands.', tip:'A means all requests go to committee.', pick:'G', score:{A:[0,2,6],T:[4,5,2],C:[6,8,0],G:[8,10,0]}},
 
-  // Health
   {name:'FLU_IMMUNITY', group:'health', desc:'Immune to the flu mechanic.', tip:'Simple, civilised, useful.', pick:'G', score:{A:[0,0,0],T:[0,0,0],C:[0,0,0],G:[6,8,0]}},
   {name:'JOINT_REGEN', group:'health', desc:'Recovery speed after exertion.', tip:'A means a prolonged union dispute with the vet.', pick:'G', score:{A:[0,2,4],T:[2,5,1],C:[4,8,0],G:[5,10,0]}},
   {name:'CARDIAC_ENDURE', group:'health', desc:'Heart efficiency under sustained load.', tip:'T has spirit, but not capacity.', pick:'G', score:{A:[5,6,1],T:[2,3,3],C:[8,10,0],G:[10,12,0]}},
   {name:'TENDON_TOUGH', group:'health', desc:'Tendon strength.', tip:'A technically meets spec until mud appears.', pick:'G', score:{A:[0,2,8],T:[3,7,2],C:[5,10,0],G:[4,12,0]}},
   {name:'HEAT_TOLERANCE', group:'health', desc:'Performance in hot conditions.', tip:'T slows dramatically in summer and complains about it.', pick:'G', score:{A:[1,3,2],T:[2,4,1],C:[5,6,0],G:[6,7,0]}},
 
-  // Advanced
   {name:'PAIN_THRESH', group:'advanced', desc:'Pain tolerance and willingness to continue.', tip:'C files a full report at the slightest inconvenience.', pick:'T', score:{A:[10,12,2],T:[8,10,1],C:[-5,-8,6],G:[5,6,0]}},
   {name:'ADREN_SURGE', group:'advanced', desc:'Adrenaline response at race start.', tip:'G is spectacular until directed at a fence.', pick:'C', score:{A:[4,10,0],T:[6,8,2],C:[10,6,4],G:[14,4,8]}},
   {name:'GRAVITY_SENSE', group:'advanced', desc:'Proprioception and balance.', tip:'G treats the ground as a suggestion.', pick:'A', score:{A:[8,20,0],T:[8,18,0],C:[6,12,2],G:[-4,-10,14]}},
@@ -289,9 +319,11 @@ function switchTab(tab){
   activeTab = tab;
   document.getElementById('tab-editor').classList.toggle('hidden', tab !== 'editor');
   document.getElementById('tab-sim').classList.toggle('hidden', tab !== 'sim');
+  document.getElementById('tab-clipboard').classList.toggle('hidden', tab !== 'clipboard');
   document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
   document.getElementById('tab-editor-btn').classList.toggle('active', tab === 'editor');
   document.getElementById('tab-sim-btn').classList.toggle('active', tab === 'sim');
+  document.getElementById('tab-clipboard-btn').classList.toggle('active', tab === 'clipboard');
   document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
 }
 
@@ -438,11 +470,12 @@ function renderGenes(){
     subset.forEach(g => {
       const vals = g.pick ? (g.score[g.pick] || [0,0,0]) : [0,0,0];
       const conflict = geneConflict(g);
+      const spec = GENE_SPECS[g.name] || ['?','?'];
       const card = document.createElement('div');
       card.className = `gene-card ${conflict}`;
       card.innerHTML = `
         <div class="gene-name">${g.name}</div>
-        <div class="gene-meta">${g.group}</div>
+        <div class="gene-meta">${g.group} · Helix ${spec[0]} · Pos ${spec[1]}</div>
         <div class="gene-desc">${g.desc}</div>
         <div class="gene-tip">💡 ${g.tip}</div>
         <div class="dropzone ${selectedBase !== null ? 'active' : ''}" data-gene="${g.name}">
@@ -491,8 +524,105 @@ function currentBuild(){
   };
 }
 
+function buildHelixArrays(fill='A'){
+  const helices = HELIX_LENGTHS.map(len => Array(len).fill(fill));
+  genes.forEach(g => {
+    const spec = GENE_SPECS[g.name];
+    if (!spec || !g.pick) return;
+    helices[spec[0]][spec[1]] = g.pick;
+  });
+  return helices;
+}
+
+function exportGameFormat(fill='A'){
+  const helices = buildHelixArrays(fill);
+  return helices.map((arr, i) => `Helix ${i}.) ${arr.join('')}\nSecond Strand: ${arr.join('')}`).join('\n\n');
+}
+
+function validateGameFormat(text){
+  const lines = text.split(/\r?\n/);
+  const helixMap = {};
+  const errors = [];
+  let currentHelix = null;
+
+  for (const line of lines){
+    const m1 = line.match(/^Helix\s+(\d+)\.\)\s*([ATCG]+)$/);
+    if (m1){
+      currentHelix = Number(m1[1]);
+      helixMap[currentHelix] = helixMap[currentHelix] || {};
+      helixMap[currentHelix].first = m1[2];
+      continue;
+    }
+    const m2 = line.match(/^Second Strand:\s*([ATCG]+)$/);
+    if (m2 && currentHelix !== null){
+      helixMap[currentHelix] = helixMap[currentHelix] || {};
+      helixMap[currentHelix].second = m2[1];
+      currentHelix = null;
+    }
+  }
+
+  for (let i=0; i<HELIX_LENGTHS.length; i++){
+    if (!helixMap[i]) errors.push(`Missing Helix ${i}`);
+    else {
+      if (!helixMap[i].first) errors.push(`Helix ${i} missing first strand`);
+      if (!helixMap[i].second) errors.push(`Helix ${i} missing second strand`);
+      if (helixMap[i].first && helixMap[i].first.length !== HELIX_LENGTHS[i]) errors.push(`Helix ${i} first strand length ${helixMap[i].first.length}, expected ${HELIX_LENGTHS[i]}`);
+      if (helixMap[i].second && helixMap[i].second.length !== HELIX_LENGTHS[i]) errors.push(`Helix ${i} second strand length ${helixMap[i].second.length}, expected ${HELIX_LENGTHS[i]}`);
+    }
+  }
+
+  return {ok: errors.length === 0, errors, helixMap};
+}
+
+function importGameFormat(text){
+  const result = validateGameFormat(text);
+  if (!result.ok) return result;
+  genes.forEach(g => {
+    const spec = GENE_SPECS[g.name];
+    if (!spec) return;
+    const [h,p] = spec;
+    const strand = result.helixMap[h]?.first;
+    g.pick = strand ? strand[p] : null;
+  });
+  logMutation('IMPORT_GAME', null, null);
+  return result;
+}
+
+function renderGameFormat(){
+  document.getElementById('gameFormatArea').value = exportGameFormat('A');
+}
+
+function renderValidation(msg, cls='status-ok'){
+  const el = document.getElementById('validationOut');
+  el.className = `mono ${cls}`;
+  el.textContent = msg;
+}
+
+function copyGameFormat(){
+  const txt = exportGameFormat('A');
+  document.getElementById('gameFormatArea').value = txt;
+  navigator.clipboard.writeText(txt);
+  renderValidation('Game format generated and copied successfully.', 'status-ok');
+  showToast('Game format copied');
+}
+
+function pasteGameFormatPrompt(){
+  const txt = prompt('Paste the game genome block');
+  if (!txt) return;
+  const result = importGameFormat(txt);
+  if (!result.ok){
+    renderValidation('Validation failed:\n' + result.errors.join('\n'), 'status-bad');
+    alert('Game format validation failed');
+    return;
+  }
+  renderValidation('Game format imported successfully. All helix lengths matched.', 'status-ok');
+  renderAll();
+  showToast('Game format imported');
+}
+
 function renderJSON(){
   document.getElementById('jsonOut').textContent = JSON.stringify(currentBuild(), null, 2);
+  renderGameFormat();
 }
 
 function applyPreset(name){
@@ -745,6 +875,7 @@ function copySim(){
 
 function renderJSON(){
   document.getElementById('jsonOut').textContent = JSON.stringify(currentBuild(), null, 2);
+  renderGameFormat();
 }
 
 function renderAll(){
@@ -757,6 +888,7 @@ function renderAll(){
 selectBase('A');
 applyPreset('champion');
 renderAll();
+renderValidation('Game format ready. Copy whenever you like.', 'status-ok');
 </script>
 </body>
 </html>
