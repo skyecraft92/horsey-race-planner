@@ -1,311 +1,724 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Horsey Race Planner v3.2</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Horsey Race Planner v3.4</title>
 <style>
-:root{--bg:#0b0f14;--panel:#111827;--muted:#9aa4b2;--blue:#2563eb;--blue2:#1f4fd6;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;background:var(--bg);color:#e6edf3;margin:0;padding:14px}
-h1{margin:0 0 6px 0}
-.small{color:var(--muted);font-size:12px}
-.tabs{display:flex;gap:8px;margin:10px 0}
-.tab{padding:8px 12px;background:#1f2937;border-radius:10px;cursor:pointer}
-.tab.active{background:var(--blue)}
-.panel{background:var(--panel);border-radius:14px;padding:12px;margin:10px 0}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-@media (max-width:700px){.grid{grid-template-columns:1fr}}
-label{font-size:12px;color:var(--muted)}
-select,input[type=range],input[type=text]{width:100%;padding:6px;border-radius:8px;border:none;background:#0f172a;color:#e6edf3}
-button{padding:8px 12px;border-radius:10px;border:none;background:var(--blue);color:white}
-button.secondary{background:#374151}
+:root{
+  --bg:#0b1020; --panel:#121a2b; --panel2:#0f1726; --border:#23304a;
+  --text:#dbe5f4; --muted:#93a4bf; --accent:#66b3ff;
+  --good:#8df0b1; --warn:#ffd166; --bad:#ff9b9b;
+  --A:#eab308; --T:#ef4444; --C:#3b82f6; --G:#22c55e;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#08101d,#0b1020);color:var(--text)}
+header{padding:18px 18px 12px;border-bottom:1px solid var(--border);background:rgba(15,23,38,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
+h1{margin:0 0 4px;font-size:22px}
+header p{margin:0;color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border);background:#0d1627;position:sticky;top:72px;z-index:19}
+.tab-btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
+.tab-btn.active{background:#17345f;color:#fff;border-color:var(--accent)}
+.page{padding:16px;max-width:1520px;margin:0 auto}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:16px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:16px;padding:14px}
+.side{position:sticky;top:126px;height:fit-content}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+input[type=text],select,textarea{width:100%;background:#091120;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 10px;font:inherit}
+textarea{min-height:110px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{padding:10px 12px;border-radius:10px;border:1px solid #3c7bcf;background:linear-gradient(180deg,#184b86,#113664);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button.secondary{background:transparent;border-color:var(--border);color:var(--text)}
 button:active{transform:translateY(1px)}
-.bad{color:var(--bad)} .warn{color:var(--warn)} .good{color:var(--ok)}
-pre{white-space:pre-wrap;background:#0f172a;border-radius:10px;padding:10px}
-.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0f172a;margin-left:6px}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.metric{background:#0a1222;border:1px solid var(--border);border-radius:12px;padding:10px}
+.metric .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.metric .v{font-size:22px;font-weight:800;margin-top:3px}
+.metric .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+.small{font-size:12px;color:var(--muted);line-height:1.5}
+.palette{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.base-chip{border:none;border-radius:999px;padding:10px 14px;font-weight:800;cursor:grab;color:#111;min-width:48px;text-align:center}
+.base-chip.selected{outline:3px solid #fff;outline-offset:2px}
+.base-A{background:var(--A)} .base-T{background:var(--T);color:#fff} .base-C{background:var(--C);color:#fff} .base-G{background:var(--G)}
+.base-clear{background:#243246;color:#fff}
+.filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.filterbar input{flex:1;min-width:160px;background:#091120;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 10px}
+.chip{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer}
+.chip.active{background:#17345f;color:#fff;border-color:var(--accent)}
+.gene-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:10px}
+.group-title{grid-column:1/-1;font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin:10px 0 2px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.gene-card{background:#0a1222;border:1px solid var(--border);border-radius:14px;padding:12px;transition:border-color .15s, box-shadow .15s}
+.gene-card.warn{border-color:rgba(255,209,102,.45)}
+.gene-card.bad{border-color:rgba(255,155,155,.55); box-shadow:0 0 0 1px rgba(255,155,155,.2) inset}
+.gene-name{font-size:13px;font-weight:800}
+.gene-meta{font-size:11px;color:#60738f;margin-top:2px}
+.gene-desc{font-size:12px;line-height:1.45;margin-top:7px}
+.gene-tip{font-size:11px;color:var(--muted);margin-top:5px;font-style:italic}
+.dropzone{margin-top:10px;border:2px dashed #365277;border-radius:12px;padding:12px;min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#091120}
+.dropzone.active{border-color:var(--accent);background:#0e1a31}
+.slot-empty{color:var(--muted);font-size:12px}
+.slot-value{display:inline-flex;align-items:center;justify-content:center;min-width:48px;padding:9px 14px;border-radius:999px;font-weight:900}
+.scoreline{font-size:11px;color:var(--muted);margin-top:8px}
+.out{background:#08101d;border:1px solid var(--border);border-radius:13px;padding:12px;margin-top:12px}
+.out strong{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.6;color:var(--text)}
+.sim-controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end}
+.save-row{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #0d1a2a}
+.save-row:last-child{border-bottom:none}
+.toast{position:fixed;right:16px;bottom:16px;background:#152338;border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none;z-index:40}
+.toast.show{opacity:1;transform:translateY(0)}
+.hidden{display:none}
+@media (max-width:1060px){.layout{grid-template-columns:1fr}.side{position:static}.metrics{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:720px){.metrics{grid-template-columns:1fr 1fr}.row,.sim-controls{grid-template-columns:1fr}.gene-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<header>
+  <h1>Horsey Race Planner v3.4</h1>
+  <p>Fuller drag-and-drop gene set, mobile tap fallback, simulator, saves, JSON import/export. Still gloriously static.</p>
+</header>
 
-<h1>Horsey Race Planner v3.2</h1>
-<div class="small">Editor + History + Upgraded Simulator (Chaos-aware)</div>
+<nav class="tabs">
+  <button id="tab-editor-btn" class="tab-btn active" onclick="switchTab('editor')">🧬 Editor</button>
+  <button id="tab-sim-btn" class="tab-btn" onclick="switchTab('sim')">🏇 Simulator</button>
+  <button id="tab-history-btn" class="tab-btn" onclick="switchTab('history')">📜 History</button>
+</nav>
 
-<div class="tabs">
-  <div id="t_editor" class="tab active" onclick="tab('editor')">Editor</div>
-  <div id="t_sim" class="tab" onclick="tab('sim')">Simulator</div>
-  <div id="t_hist" class="tab" onclick="tab('hist')">History</div>
+<div class="page">
+  <section id="tab-editor" class="layout">
+    <aside class="card side">
+      <div class="field">
+        <label>Preset</label>
+        <select id="presetSelect">
+          <option value="champion">Champion</option>
+          <option value="balanced">Balanced</option>
+          <option value="sprint">Sprint</option>
+          <option value="endurance">Endurance</option>
+          <option value="chaos">Break Reality</option>
+          <option value="blank">Blank</option>
+        </select>
+      </div>
+      <div class="row">
+        <button onclick="applyPresetFromSelect()">Apply Preset</button>
+        <button class="secondary" onclick="resetBuild()">Reset</button>
+      </div>
+
+      <div class="out">
+        <strong>Base Palette</strong>
+        <div class="small" style="margin-top:6px">Drag a base into a gene slot. On mobile, tap a base here, then tap a slot to assign it.</div>
+        <div class="palette" id="palette">
+          <button class="base-chip base-A" draggable="true" data-base="A">A</button>
+          <button class="base-chip base-T" draggable="true" data-base="T">T</button>
+          <button class="base-chip base-C" draggable="true" data-base="C">C</button>
+          <button class="base-chip base-G" draggable="true" data-base="G">G</button>
+          <button class="base-chip base-clear" draggable="false" data-base="" onclick="selectBase('')">Clear</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:10px">
+        <label>Search genes</label>
+        <input id="searchInput" type="text" placeholder="Search name or description…" oninput="renderGenes()">
+      </div>
+
+      <div class="out">
+        <strong>Build Tools</strong>
+        <div class="row" style="margin-top:8px">
+          <button onclick="applySafeLooks()">Safe Looks</button>
+          <button class="secondary" onclick="copyJSON()">Copy JSON</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="secondary" onclick="importJSON()">Import JSON</button>
+          <button onclick="saveBuild()">Save Build</button>
+        </div>
+        <div class="field" style="margin-top:10px">
+          <label>Build name</label>
+          <input id="buildName" type="text" placeholder="Champion Template">
+        </div>
+      </div>
+
+      <div class="out">
+        <strong>Current Selection</strong>
+        <div class="small" id="selectedBaseText" style="margin-top:6px">No base selected.</div>
+      </div>
+    </aside>
+
+    <main class="card">
+      <div class="metrics">
+        <div class="metric"><div class="k">Speed</div><div class="v" id="mSpeed">0</div></div>
+        <div class="metric"><div class="k">Stability</div><div class="v" id="mStability">0</div></div>
+        <div class="metric"><div class="k">Risk</div><div class="v" id="mRisk">0</div></div>
+        <div class="metric"><div class="k">Chaos</div><div class="v" id="mChaos">0</div><div class="sub" id="mChaosLabel">—</div></div>
+        <div class="metric"><div class="k">Verdict</div><div class="v" id="mVerdict">—</div></div>
+      </div>
+
+      <div class="filterbar">
+        <button class="chip active" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button class="chip" data-filter="performance" onclick="setFilter('performance', this)">Performance</button>
+        <button class="chip" data-filter="stability" onclick="setFilter('stability', this)">Stability</button>
+        <button class="chip" data-filter="behavior" onclick="setFilter('behavior', this)">Behavior</button>
+        <button class="chip" data-filter="appearance" onclick="setFilter('appearance', this)">Appearance</button>
+        <button class="chip" data-filter="health" onclick="setFilter('health', this)">Health</button>
+        <button class="chip" data-filter="advanced" onclick="setFilter('advanced', this)">Advanced</button>
+      </div>
+
+      <div class="gene-grid" id="geneGrid"></div>
+
+      <div class="out"><strong>JSON Build</strong><div class="mono" id="jsonOut"></div></div>
+    </main>
+  </section>
+
+  <section id="tab-sim" class="layout hidden">
+    <aside class="card side">
+      <div class="sim-controls">
+        <div class="field">
+          <label>Runs</label>
+          <select id="simRuns">
+            <option>25</option><option>50</option><option selected>100</option><option>250</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Track</label>
+          <select id="simTrack">
+            <option value="standard">Standard</option>
+            <option value="sprint">Sprint</option>
+            <option value="endurance">Endurance</option>
+            <option value="mud">Mud</option>
+            <option value="uphill">Uphill</option>
+            <option value="tight">Tight Circuit</option>
+            <option value="wet">Wet Grass</option>
+          </select>
+        </div>
+        <button onclick="runSim()">Run</button>
+        <button class="secondary" onclick="copySim()">Copy</button>
+      </div>
+      <div class="out">
+        <strong>Notes</strong>
+        <div class="small" style="margin-top:6px">Simulation uses an 8-horse field, track modifiers, chaos multiplier, and behaviour incidents. The horse may still unionise.</div>
+      </div>
+    </aside>
+    <main class="card">
+      <div class="out"><strong>Results</strong><div class="mono" id="simOut">No simulation run yet.</div></div>
+    </main>
+  </section>
+
+  <section id="tab-history" class="layout hidden">
+    <aside class="card side">
+      <div class="out">
+        <strong>Saved Builds</strong>
+        <div class="small" style="margin-top:6px">Stored locally in your browser. Up to 10.</div>
+      </div>
+      <div class="out">
+        <strong>Mutation History</strong>
+        <div class="small" style="margin-top:6px">Most recent 80 edits are kept locally.</div>
+      </div>
+    </aside>
+    <main class="card">
+      <div id="saveList"></div>
+      <div class="out"><strong>Recent Mutations</strong><div class="mono" id="mutationOut"></div></div>
+    </main>
+  </section>
 </div>
 
-<!-- EDITOR -->
-<div id="editor" class="panel">
-  <div class="row">
-    <button onclick="applyPreset('champion')">Champion</button>
-    <button onclick="applyPreset('balanced')">Balanced</button>
-    <button onclick="applyPreset('chaos')">Break Reality</button>
-    <button class="secondary" onclick="applySafeLooks()">Safe Looks</button>
-  </div>
-
-  <div class="grid" style="margin-top:8px">
-    <div>
-      <label>Speed</label>
-      <input id="speed" type="range" min="50" max="200" value="130" oninput="renderStats()">
-    </div>
-    <div>
-      <label>Stability</label>
-      <input id="stability" type="range" min="50" max="150" value="95" oninput="renderStats()">
-    </div>
-    <div>
-      <label>Risk</label>
-      <input id="risk" type="range" min="0" max="100" value="20" oninput="renderStats()">
-    </div>
-    <div>
-      <label>Chaos Index</label>
-      <input id="chaos" type="range" min="0" max="100" value="40" oninput="renderStats()">
-    </div>
-  </div>
-
-  <div class="grid" style="margin-top:8px">
-    <!-- curated gene set -->
-    <div>
-      <label>MUSCLE_USE</label>
-      <select id="MUSCLE_USE"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>SPEED_FACTOR</label>
-      <select id="SPEED_FACTOR"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>LOCO_SYNC</label>
-      <select id="LOCO_SYNC"><option>A</option><option>T</option><option selected>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>SPINAL_LOCO</label>
-      <select id="SPINAL_LOCO"><option>A</option><option>T</option><option selected>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>NARCOLEPSY</label>
-      <select id="NARCOLEPSY"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>RAMPAGE</label>
-      <select id="RAMPAGE"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>HIGH_INTELLECT</label>
-      <select id="HIGH_INTELLECT"><option>A</option><option selected>T</option><option>G</option><option>C</option></select>
-    </div>
-    <div>
-      <label>OMNIVORE</label>
-      <select id="OMNIVORE"><option selected>A</option><option>G</option><option>T</option><option>C</option></select>
-    </div>
-    <div>
-      <label>SIZE</label>
-      <select id="SIZE"><option selected>T</option><option>A</option><option>G</option><option>C</option></select>
-    </div>
-    <div>
-      <label>LEG_LENGTH</label>
-      <select id="LEG_LENGTH"><option selected>G</option><option>A</option><option>T</option><option>C</option></select>
-    </div>
-  </div>
-
-  <div class="row" style="margin-top:8px">
-    <button onclick="copyJSON()">Copy JSON</button>
-    <button class="secondary" onclick="importJSON()">Import JSON</button>
-    <button class="secondary" onclick="saveBuild()">Save Build</button>
-    <input id="saveName" placeholder="Name build…" style="flex:1">
-  </div>
-
-  <div class="panel" style="margin-top:10px">
-    <strong>Stats</strong>
-    <div id="stats"></div>
-  </div>
-</div>
-
-<!-- SIM -->
-<div id="sim" class="panel" style="display:none">
-  <div class="row">
-    <label>Runs</label>
-    <select id="runs">
-      <option>25</option><option>50</option><option selected>100</option><option>250</option>
-    </select>
-    <label>Track</label>
-    <select id="track">
-      <option value="standard">Standard</option>
-      <option value="sprint">Sprint</option>
-      <option value="endurance">Endurance</option>
-      <option value="mud">Mud</option>
-      <option value="uphill">Uphill</option>
-      <option value="tight">Tight Circuit</option>
-      <option value="wet">Wet Grass</option>
-    </select>
-    <button onclick="runSim()">Run Simulation</button>
-  </div>
-
-  <div class="panel">
-    <pre id="out"></pre>
-  </div>
-</div>
-
-<!-- HISTORY -->
-<div id="hist" class="panel" style="display:none">
-  <strong>Saved Builds</strong>
-  <div id="saves"></div>
-  <div class="small">Stored in localStorage (up to 10)</div>
-</div>
+<div class="toast" id="toast">Done</div>
 
 <script>
-function tab(t){
-  ['editor','sim','hist'].forEach(id=>{
-    document.getElementById(id).style.display = (id===t?'block':'none');
-    document.getElementById('t_'+id).classList.toggle('active', id===t);
+const BUILD_KEY = 'hrp_v34_builds';
+const HISTORY_KEY = 'hrp_v34_mutations';
+
+const genes = [
+  // Appearance
+  {name:'SIZE', group:'appearance', desc:'Body scale baseline. T keeps it compact and race-legal.', tip:'C gets suspiciously large.', pick:'T', score:{A:[0,1,2],T:[0,2,0],C:[0,0,4],G:[0,1,1]}},
+  {name:'HEAD_SIZE', group:'appearance', desc:'Keeps the head from becoming a public enquiry.', tip:'T is all forehead and poor choices.', pick:'A', score:{A:[0,2,0],T:[0,0,4],C:[0,0,5],G:[0,1,1]}},
+  {name:'LEG_LENGTH', group:'appearance', desc:'Stride and proportions.', tip:'G looks and runs correctly.', pick:'G', score:{A:[2,3,1],T:[0,0,5],C:[4,2,3],G:[3,4,0]}},
+  {name:'TAIL_EXISTS', group:'appearance', desc:'Useful if you prefer a tail.', tip:'A is the conservative option.', pick:'A', score:{A:[0,2,0],T:[0,-3,6],C:[0,2,0],G:[0,2,0]}},
+  {name:'HAS_MOUTH', group:'appearance', desc:'Reassuring in a racehorse.', tip:'Optional only in the most cursed branches of science.', pick:'A', score:{A:[0,2,0],T:[0,2,0],C:[0,-5,8],G:[0,2,0]}},
+  {name:'COAT_SHEEN', group:'appearance', desc:'Coat lustre and reflectivity.', tip:'G gleams like a newly launched torpedo.', pick:'A', score:{A:[0,1,0],T:[0,1,0],C:[1,1,0],G:[2,2,0]}},
+  {name:'MANE_DENSITY', group:'appearance', desc:'A flowing mane or a sensible trim.', tip:'G means the mane arrives before the horse.', pick:'C', score:{A:[0,1,0],T:[1,1,0],C:[1,1,0],G:[-1,0,2]}},
+  {name:'EYE_COLOUR', group:'appearance', desc:'Purely cosmetic, but unnervingly persuasive.', tip:'G heterochromia adds menace.', pick:'A', score:{A:[0,0,0],T:[0,0,0],C:[0,0,0],G:[1,0,0]}},
+
+  // Performance
+  {name:'MUSCLE_USE', group:'performance', desc:'Core force multiplier. Big one.', tip:'G is the professional answer.', pick:'G', score:{A:[20,6,2],T:[5,4,0],C:[35,8,6],G:[35,8,6]}},
+  {name:'SPEED_FACTOR', group:'performance', desc:'Primary speed driver.', tip:'G is peak speed.', pick:'G', score:{A:[28,6,2],T:[5,4,0],C:[18,5,1],G:[40,8,4]}},
+  {name:'BREAK_FORCE', group:'performance', desc:'Stamina drain. T or G is marathon nonsense.', tip:'The horse simply refuses to get tired.', pick:'T', score:{A:[5,5,1],T:[25,12,2],C:[2,4,1],G:[25,12,2]}},
+  {name:'ACCEL_CURVE', group:'performance', desc:'How quickly top speed arrives.', tip:'G for explosive starts.', pick:'G', score:{A:[10,8,1],T:[4,6,0],C:[14,5,2],G:[18,4,3]}},
+  {name:'STRIDE_FREQ', group:'performance', desc:'Leg turnover rate.', tip:'G means very busy feet.', pick:'C', score:{A:[8,7,0],T:[2,5,0],C:[12,6,1],G:[15,5,2]}},
+  {name:'OXYGEN_UPTAKE', group:'performance', desc:'Lung efficiency under load.', tip:'G is elite aerobic capacity.', pick:'G', score:{A:[5,4,0],T:[2,3,0],C:[10,5,1],G:[12,6,1]}},
+  {name:'BONE_DENSITY', group:'performance', desc:'Structural integrity for hard tracks.', tip:'T meets one pebble and writes its resignation.', pick:'C', score:{A:[4,6,2],T:[-2,-4,8],C:[8,10,0],G:[6,12,0]}},
+
+  // Stability
+  {name:'LOCO_SYNC', group:'stability', desc:'Whether the gait is coordinated or a legal argument.', tip:'T is saintly.', pick:'T', score:{A:[6,5,10],T:[10,30,0],C:[6,5,10],G:[6,5,10]}},
+  {name:'SPINAL_LOCO', group:'stability', desc:'Standard quadruped vs biomechanical jazz.', tip:'C is fast; A is interpretive dance.', pick:'T', score:{A:[-8,-20,20],T:[2,10,6],C:[10,25,0],G:[10,25,0]}},
+  {name:'LIMP', group:'stability', desc:'A visible limp is not ideal for racing.', tip:'C is brave but misguided.', pick:'A', score:{A:[8,20,0],T:[8,20,0],C:[-20,-30,20],G:[-10,-12,8]}},
+  {name:'BRAIN_SPASTIC', group:'stability', desc:'Random twitching. Always a crowd favourite.', tip:'A is chaos with bones.', pick:'T', score:{A:[-20,-25,20],T:[5,22,0],C:[5,22,0],G:[-10,8,6]}},
+  {name:'NECK_STIFF', group:'stability', desc:'Rigid neck can make motion odd.', tip:'G corners like a wardrobe.', pick:'A', score:{A:[6,15,0],T:[1,4,6],C:[6,15,0],G:[1,4,6]}},
+  {name:'STIFF_JOINTS', group:'stability', desc:'Joint flexibility. Furniture is less stiff.', tip:'A qualifies as cabinetry.', pick:'T', score:{A:[-10,-18,12],T:[8,18,0],C:[8,18,0],G:[2,6,4]}},
+  {name:'OLD_AGE', group:'stability', desc:'Progressive degradation over time.', tip:'G becomes nostalgic by lap two.', pick:'T', score:{A:[6,16,0],T:[6,16,0],C:[10,6,6],G:[-8,-10,10]}},
+  {name:'SPINE_CURVE', group:'stability', desc:'Spinal alignment and balance.', tip:'A is biomechanically smug.', pick:'A', score:{A:[8,14,0],T:[-2,-5,8],C:[4,7,2],G:[6,10,1]}},
+
+  // Behavior
+  {name:'RAMPAGE', group:'behavior', desc:'Disqualified for aggressive conduct if you are unlucky. Or lucky, depending on taste.', tip:'G is entertaining, not competitive.', pick:'A', score:{A:[6,18,0],T:[6,18,0],C:[6,18,0],G:[-12,-20,24]}},
+  {name:'NARCOLEPSY', group:'behavior', desc:'The horse may decide the race is a nap opportunity.', tip:'G is catastrophic and very funny.', pick:'A', score:{A:[8,20,0],T:[8,20,0],C:[8,20,0],G:[-20,-30,28]}},
+  {name:'HIGH_INTELLECT', group:'behavior', desc:'Can refuse to race on philosophical grounds.', tip:'T or G means opinions.', pick:'A', score:{A:[8,18,0],T:[2,8,10],C:[8,18,0],G:[2,8,10]}},
+  {name:'OMNIVORE', group:'behavior', desc:'A horse that thinks rival horses are snacks.', tip:'A is not technically best practice.', pick:'C', score:{A:[-4,-6,16],T:[4,12,0],C:[4,12,0],G:[4,12,0]}},
+  {name:'SOCIAL_DRIVE', group:'behavior', desc:'Competitive instinct versus making friends mid-race.', tip:'A will stop to network.', pick:'G', score:{A:[-5,2,6],T:[5,4,0],C:[8,6,1],G:[10,8,2]}},
+  {name:'FEAR_RESPONSE', group:'behavior', desc:'Startle threshold.', tip:'G can be defeated by a flag.', pick:'A', score:{A:[8,16,0],T:[6,12,1],C:[4,8,2],G:[-8,-14,12]}},
+  {name:'JOCKEY_BOND', group:'behavior', desc:'Responsiveness to rider commands.', tip:'A means all requests go to committee.', pick:'G', score:{A:[0,2,6],T:[4,5,2],C:[6,8,0],G:[8,10,0]}},
+
+  // Health
+  {name:'FLU_IMMUNITY', group:'health', desc:'Immune to the flu mechanic.', tip:'Simple, civilised, useful.', pick:'G', score:{A:[0,0,0],T:[0,0,0],C:[0,0,0],G:[6,8,0]}},
+  {name:'JOINT_REGEN', group:'health', desc:'Recovery speed after exertion.', tip:'A means a prolonged union dispute with the vet.', pick:'G', score:{A:[0,2,4],T:[2,5,1],C:[4,8,0],G:[5,10,0]}},
+  {name:'CARDIAC_ENDURE', group:'health', desc:'Heart efficiency under sustained load.', tip:'T has spirit, but not capacity.', pick:'G', score:{A:[5,6,1],T:[2,3,3],C:[8,10,0],G:[10,12,0]}},
+  {name:'TENDON_TOUGH', group:'health', desc:'Tendon strength.', tip:'A technically meets spec until mud appears.', pick:'G', score:{A:[0,2,8],T:[3,7,2],C:[5,10,0],G:[4,12,0]}},
+  {name:'HEAT_TOLERANCE', group:'health', desc:'Performance in hot conditions.', tip:'T slows dramatically in summer and complains about it.', pick:'G', score:{A:[1,3,2],T:[2,4,1],C:[5,6,0],G:[6,7,0]}},
+
+  // Advanced
+  {name:'PAIN_THRESH', group:'advanced', desc:'Pain tolerance and willingness to continue.', tip:'C files a full report at the slightest inconvenience.', pick:'T', score:{A:[10,12,2],T:[8,10,1],C:[-5,-8,6],G:[5,6,0]}},
+  {name:'ADREN_SURGE', group:'advanced', desc:'Adrenaline response at race start.', tip:'G is spectacular until directed at a fence.', pick:'C', score:{A:[4,10,0],T:[6,8,2],C:[10,6,4],G:[14,4,8]}},
+  {name:'GRAVITY_SENSE', group:'advanced', desc:'Proprioception and balance.', tip:'G treats the ground as a suggestion.', pick:'A', score:{A:[8,20,0],T:[8,18,0],C:[6,12,2],G:[-4,-10,14]}},
+  {name:'TEMP_FACTOR', group:'advanced', desc:'Body temperature regulation.', tip:'C overheats philosophically.', pick:'T', score:{A:[5,10,0],T:[6,12,0],C:[2,4,6],G:[4,7,2]}},
+];
+
+let activeTab = 'editor';
+let activeFilter = 'all';
+let selectedBase = null;
+let lastSimText = 'No simulation run yet.';
+
+function switchTab(tab){
+  activeTab = tab;
+  document.getElementById('tab-editor').classList.toggle('hidden', tab !== 'editor');
+  document.getElementById('tab-sim').classList.toggle('hidden', tab !== 'sim');
+  document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
+  document.getElementById('tab-editor-btn').classList.toggle('active', tab === 'editor');
+  document.getElementById('tab-sim-btn').classList.toggle('active', tab === 'sim');
+  document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(()=>t.classList.remove('show'), 1300);
+}
+
+function selectBase(base){
+  selectedBase = base;
+  document.querySelectorAll('#palette .base-chip').forEach(el => {
+    el.classList.toggle('selected', el.dataset.base === base);
   });
+  document.getElementById('selectedBaseText').textContent = base === '' ? 'Clear selected. Tap a slot to empty it.' : (base ? `Selected base: ${base}. Drag it, or tap a slot.` : 'No base selected.');
+}
+
+document.querySelectorAll('#palette .base-chip[data-base]').forEach(el => {
+  el.addEventListener('click', () => selectBase(el.dataset.base));
+  el.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', el.dataset.base);
+    selectBase(el.dataset.base);
+  });
+});
+
+function baseClass(base){
+  return base ? `base-${base}` : 'base-clear';
+}
+
+function logMutation(name, from, to){
+  const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  hist.unshift({name, from, to, ts: Date.now()});
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0,80)));
+}
+
+function assignGene(name, base){
+  const g = genes.find(x => x.name === name);
+  if(!g) return;
+  const prev = g.pick || null;
+  g.pick = base || null;
+  logMutation(name, prev, g.pick);
+  renderAll();
+}
+
+function geneConflict(g){
+  const picks = Object.fromEntries(genes.map(x => [x.name, x.pick]));
+  if ((picks.SPINAL_LOCO === 'A' || picks.SPINAL_LOCO === 'G') && picks.LOCO_SYNC !== 'T') {
+    if (g.name === 'SPINAL_LOCO' || g.name === 'LOCO_SYNC') return 'bad';
+  }
+  if (picks.LIMP === 'C' && picks.SPEED_FACTOR === 'G') {
+    if (g.name === 'LIMP' || g.name === 'SPEED_FACTOR') return 'warn';
+  }
+  if (picks.NARCOLEPSY === 'G' && picks.HIGH_INTELLECT === 'T') {
+    if (g.name === 'NARCOLEPSY' || g.name === 'HIGH_INTELLECT') return 'warn';
+  }
+  if (picks.RAMPAGE === 'G' && picks.JOCKEY_BOND === 'A') {
+    if (g.name === 'RAMPAGE' || g.name === 'JOCKEY_BOND') return 'bad';
+  }
+  return '';
+}
+
+function setFilter(filter, btn){
+  activeFilter = filter;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderGenes();
+}
+
+function scoreTotals(){
+  let speed=0, stability=0, risk=0;
+  genes.forEach(g => {
+    if (!g.pick) return;
+    const vals = g.score[g.pick] || [0,0,0];
+    speed += vals[0]; stability += vals[1]; risk += vals[2];
+  });
+  return {speed, stability, risk};
+}
+
+function chaosIndex(scores){
+  return Math.max(0, Math.round(scores.risk + Math.max(0, 120 - scores.stability) * 0.35));
 }
 
 function chaosLabel(v){
-  if(v<15) return ['Stable','good'];
-  if(v<35) return ['Volatile','warn'];
-  if(v<60) return ['Unstable','warn'];
-  if(v<85) return ['Hazardous','bad'];
+  if(v < 15) return ['Stable','good'];
+  if(v < 35) return ['Volatile','warn'];
+  if(v < 60) return ['Unstable','warn'];
+  if(v < 85) return ['Hazardous','bad'];
   return ['Theological Incident','bad'];
 }
 
-function getBuild(){
+function verdict(scores){
+  const total = scores.speed + scores.stability - scores.risk;
+  const chaos = chaosIndex(scores);
+  if (chaos > 85) return ['Theological Incident','bad'];
+  if (scores.risk > 80) return ['Chaotic','bad'];
+  if (total > 310 && scores.stability > 220) return ['Legendary','good'];
+  if (total > 240 && scores.stability > 190) return ['Champion','good'];
+  if (total > 160) return ['Strong','good'];
+  if (total > 90) return ['Usable','warn'];
+  return ['Questionable','bad'];
+}
+
+function renderMetrics(){
+  const s = scoreTotals();
+  const chaos = chaosIndex(s);
+  const [cl, cc] = chaosLabel(chaos);
+  const [vl, vc] = verdict(s);
+  const set = (id, value, cls='') => {
+    const el = document.getElementById(id);
+    el.textContent = value;
+    el.className = `v ${cls}`;
+  };
+  set('mSpeed', s.speed, s.speed > 160 ? 'good' : s.speed > 90 ? 'warn' : 'bad');
+  set('mStability', s.stability, s.stability > 180 ? 'good' : s.stability > 100 ? 'warn' : 'bad');
+  set('mRisk', s.risk, s.risk < 20 ? 'good' : s.risk < 60 ? 'warn' : 'bad');
+  set('mChaos', chaos, cc);
+  set('mVerdict', vl, vc);
+  document.getElementById('mChaosLabel').textContent = cl;
+  document.getElementById('mChaosLabel').className = `sub ${cc}`;
+}
+
+function renderGenes(){
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const groups = ['performance','stability','behavior','appearance','health','advanced'];
+  const names = {performance:'Performance', stability:'Stability', behavior:'Behavior', appearance:'Appearance', health:'Health', advanced:'Advanced'};
+  const grid = document.getElementById('geneGrid');
+  grid.innerHTML = '';
+
+  groups.forEach(group => {
+    if (activeFilter !== 'all' && activeFilter !== group) return;
+    const subset = genes.filter(g =>
+      g.group === group &&
+      (!q || g.name.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || g.tip.toLowerCase().includes(q))
+    );
+    if (!subset.length) return;
+
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = names[group];
+    grid.appendChild(title);
+
+    subset.forEach(g => {
+      const vals = g.pick ? (g.score[g.pick] || [0,0,0]) : [0,0,0];
+      const conflict = geneConflict(g);
+      const card = document.createElement('div');
+      card.className = `gene-card ${conflict}`;
+      card.innerHTML = `
+        <div class="gene-name">${g.name}</div>
+        <div class="gene-meta">${g.group}</div>
+        <div class="gene-desc">${g.desc}</div>
+        <div class="gene-tip">💡 ${g.tip}</div>
+        <div class="dropzone ${selectedBase !== null ? 'active' : ''}" data-gene="${g.name}">
+          <div>
+            ${g.pick
+              ? `<span class="slot-value ${baseClass(g.pick)}">${g.pick}</span>`
+              : `<span class="slot-empty">Drop base here</span>`}
+          </div>
+          <button class="secondary" type="button" data-clear="${g.name}">Clear</button>
+        </div>
+        <div class="scoreline">spd ${vals[0]} / stb ${vals[1]} / risk ${vals[2]}</div>
+      `;
+      grid.appendChild(card);
+    });
+  });
+
+  document.querySelectorAll('.dropzone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('active'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('active'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('active');
+      const base = e.dataTransfer.getData('text/plain');
+      assignGene(zone.dataset.gene, base);
+    });
+    zone.addEventListener('click', e => {
+      if (e.target.dataset.clear) return;
+      if (selectedBase !== null) assignGene(zone.dataset.gene, selectedBase);
+    });
+  });
+
+  document.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      assignGene(btn.dataset.clear, null);
+    });
+  });
+}
+
+function currentBuild(){
   return {
-    speed:+speed.value,
-    stability:+stability.value,
-    risk:+risk.value,
-    chaos:+chaos.value,
-    genes:{
-      MUSCLE_USE: MUSCLE_USE.value,
-      SPEED_FACTOR: SPEED_FACTOR.value,
-      LOCO_SYNC: LOCO_SYNC.value,
-      SPINAL_LOCO: SPINAL_LOCO.value,
-      NARCOLEPSY: NARCOLEPSY.value,
-      RAMPAGE: RAMPAGE.value,
-      HIGH_INTELLECT: HIGH_INTELLECT.value,
-      OMNIVORE: OMNIVORE.value,
-      SIZE: SIZE.value,
-      LEG_LENGTH: LEG_LENGTH.value
-    }
+    name: document.getElementById('buildName').value.trim() || 'Unnamed Build',
+    genes: Object.fromEntries(genes.map(g => [g.name, g.pick])),
+    scores: scoreTotals(),
+    chaos: chaosIndex(scoreTotals())
   };
 }
 
-function applyBuild(b){
-  speed.value=b.speed; stability.value=b.stability; risk.value=b.risk; chaos.value=b.chaos;
-  Object.entries(b.genes||{}).forEach(([k,v])=>{ if(window[k]) window[k].value=v; });
-  renderStats();
+function renderJSON(){
+  document.getElementById('jsonOut').textContent = JSON.stringify(currentBuild(), null, 2);
 }
 
-function applyPreset(p){
-  const b = getBuild();
-  if(p==='champion'){
-    b.speed=170; b.stability=120; b.risk=10; b.chaos=20;
-    b.genes.MUSCLE_USE='G'; b.genes.SPEED_FACTOR='G'; b.genes.LOCO_SYNC='T'; b.genes.SPINAL_LOCO='T';
-    b.genes.NARCOLEPSY='A'; b.genes.RAMPAGE='A'; b.genes.HIGH_INTELLECT='A'; b.genes.OMNIVORE='A';
-  } else if(p==='balanced'){
-    b.speed=140; b.stability=110; b.risk=20; b.chaos=35;
-  } else {
-    b.speed=160; b.stability=80; b.risk=60; b.chaos=85;
-    b.genes.RAMPAGE='G'; b.genes.NARCOLEPSY='G'; b.genes.HIGH_INTELLECT='T'; b.genes.OMNIVORE='A';
-    b.genes.SPINAL_LOCO='A'; b.genes.LOCO_SYNC='A';
-  }
-  applyBuild(b);
-  logEvent('preset:'+p);
+function applyPreset(name){
+  const map = {
+    champion: {
+      MUSCLE_USE:'G', SPEED_FACTOR:'G', BREAK_FORCE:'T', ACCEL_CURVE:'G', STRIDE_FREQ:'G', OXYGEN_UPTAKE:'G', BONE_DENSITY:'C',
+      LOCO_SYNC:'T', SPINAL_LOCO:'T', LIMP:'A', BRAIN_SPASTIC:'T', NECK_STIFF:'A', STIFF_JOINTS:'T', OLD_AGE:'A', SPINE_CURVE:'A',
+      RAMPAGE:'A', NARCOLEPSY:'A', HIGH_INTELLECT:'A', OMNIVORE:'C', SOCIAL_DRIVE:'G', FEAR_RESPONSE:'A', JOCKEY_BOND:'G',
+      SIZE:'T', HEAD_SIZE:'A', LEG_LENGTH:'G', TAIL_EXISTS:'A', HAS_MOUTH:'A', COAT_SHEEN:'A', MANE_DENSITY:'C', EYE_COLOUR:'A',
+      FLU_IMMUNITY:'G', JOINT_REGEN:'G', CARDIAC_ENDURE:'G', TENDON_TOUGH:'G', HEAT_TOLERANCE:'G',
+      PAIN_THRESH:'T', ADREN_SURGE:'C', GRAVITY_SENSE:'A', TEMP_FACTOR:'T'
+    },
+    balanced: {
+      MUSCLE_USE:'A', SPEED_FACTOR:'A', BREAK_FORCE:'G', ACCEL_CURVE:'C', STRIDE_FREQ:'C', OXYGEN_UPTAKE:'C', BONE_DENSITY:'G',
+      LOCO_SYNC:'T', SPINAL_LOCO:'C', LIMP:'T', BRAIN_SPASTIC:'C', NECK_STIFF:'C', STIFF_JOINTS:'C', OLD_AGE:'T', SPINE_CURVE:'A',
+      RAMPAGE:'A', NARCOLEPSY:'A', HIGH_INTELLECT:'C', OMNIVORE:'G', SOCIAL_DRIVE:'C', FEAR_RESPONSE:'T', JOCKEY_BOND:'C',
+      SIZE:'T', HEAD_SIZE:'A', LEG_LENGTH:'A', TAIL_EXISTS:'A', HAS_MOUTH:'A', COAT_SHEEN:'C', MANE_DENSITY:'T', EYE_COLOUR:'G',
+      FLU_IMMUNITY:'G', JOINT_REGEN:'C', CARDIAC_ENDURE:'C', TENDON_TOUGH:'C', HEAT_TOLERANCE:'C',
+      PAIN_THRESH:'G', ADREN_SURGE:'T', GRAVITY_SENSE:'T', TEMP_FACTOR:'A'
+    },
+    sprint: {
+      MUSCLE_USE:'C', SPEED_FACTOR:'G', BREAK_FORCE:'A', ACCEL_CURVE:'G', STRIDE_FREQ:'G', OXYGEN_UPTAKE:'C', BONE_DENSITY:'C',
+      LOCO_SYNC:'T', SPINAL_LOCO:'C', LIMP:'A', BRAIN_SPASTIC:'T', NECK_STIFF:'A', STIFF_JOINTS:'T', OLD_AGE:'A', SPINE_CURVE:'A',
+      RAMPAGE:'A', NARCOLEPSY:'A', HIGH_INTELLECT:'A', OMNIVORE:'C', SOCIAL_DRIVE:'G', FEAR_RESPONSE:'A', JOCKEY_BOND:'G',
+      SIZE:'A', HEAD_SIZE:'A', LEG_LENGTH:'C', TAIL_EXISTS:'A', HAS_MOUTH:'A', COAT_SHEEN:'A', MANE_DENSITY:'C', EYE_COLOUR:'A',
+      FLU_IMMUNITY:'G', JOINT_REGEN:'G', CARDIAC_ENDURE:'C', TENDON_TOUGH:'C', HEAT_TOLERANCE:'C',
+      PAIN_THRESH:'A', ADREN_SURGE:'G', GRAVITY_SENSE:'A', TEMP_FACTOR:'T'
+    },
+    endurance: {
+      MUSCLE_USE:'A', SPEED_FACTOR:'A', BREAK_FORCE:'G', ACCEL_CURVE:'A', STRIDE_FREQ:'C', OXYGEN_UPTAKE:'G', BONE_DENSITY:'G',
+      LOCO_SYNC:'T', SPINAL_LOCO:'C', LIMP:'A', BRAIN_SPASTIC:'T', NECK_STIFF:'A', STIFF_JOINTS:'T', OLD_AGE:'A', SPINE_CURVE:'A',
+      RAMPAGE:'A', NARCOLEPSY:'A', HIGH_INTELLECT:'A', OMNIVORE:'C', SOCIAL_DRIVE:'C', FEAR_RESPONSE:'A', JOCKEY_BOND:'G',
+      SIZE:'T', HEAD_SIZE:'A', LEG_LENGTH:'A', TAIL_EXISTS:'A', HAS_MOUTH:'A', COAT_SHEEN:'A', MANE_DENSITY:'C', EYE_COLOUR:'A',
+      FLU_IMMUNITY:'G', JOINT_REGEN:'G', CARDIAC_ENDURE:'G', TENDON_TOUGH:'G', HEAT_TOLERANCE:'G',
+      PAIN_THRESH:'T', ADREN_SURGE:'A', GRAVITY_SENSE:'A', TEMP_FACTOR:'A'
+    },
+    chaos: {
+      MUSCLE_USE:'G', SPEED_FACTOR:'G', BREAK_FORCE:'A', ACCEL_CURVE:'G', STRIDE_FREQ:'G', OXYGEN_UPTAKE:'A', BONE_DENSITY:'T',
+      LOCO_SYNC:'A', SPINAL_LOCO:'A', LIMP:'C', BRAIN_SPASTIC:'A', NECK_STIFF:'T', STIFF_JOINTS:'A', OLD_AGE:'G', SPINE_CURVE:'T',
+      RAMPAGE:'G', NARCOLEPSY:'G', HIGH_INTELLECT:'T', OMNIVORE:'A', SOCIAL_DRIVE:'A', FEAR_RESPONSE:'G', JOCKEY_BOND:'A',
+      SIZE:'C', HEAD_SIZE:'T', LEG_LENGTH:'T', TAIL_EXISTS:'T', HAS_MOUTH:'C', COAT_SHEEN:'G', MANE_DENSITY:'G', EYE_COLOUR:'G',
+      FLU_IMMUNITY:'A', JOINT_REGEN:'A', CARDIAC_ENDURE:'T', TENDON_TOUGH:'A', HEAT_TOLERANCE:'T',
+      PAIN_THRESH:'A', ADREN_SURGE:'G', GRAVITY_SENSE:'G', TEMP_FACTOR:'C'
+    },
+    blank: {}
+  };
+  genes.forEach(g => g.pick = map[name]?.[g.name] ?? null);
+  document.getElementById('presetSelect').value = name;
+  logMutation(`PRESET:${name}`, null, null);
+  renderAll();
+}
+
+function applyPresetFromSelect(){
+  applyPreset(document.getElementById('presetSelect').value);
+  showToast('Preset applied');
+}
+
+function resetBuild(){
+  genes.forEach(g => g.pick = null);
+  logMutation('RESET', null, null);
+  renderAll();
+  showToast('Build reset');
 }
 
 function applySafeLooks(){
-  const b=getBuild();
-  b.genes.SIZE='T'; b.genes.LEG_LENGTH='G';
-  applyBuild(b);
-  logEvent('safeLooks');
+  const safe = {SIZE:'T', HEAD_SIZE:'A', LEG_LENGTH:'G', TAIL_EXISTS:'A', HAS_MOUTH:'A', COAT_SHEEN:'A', MANE_DENSITY:'C', EYE_COLOUR:'A'};
+  genes.forEach(g => { if (safe[g.name]) g.pick = safe[g.name]; });
+  logMutation('SAFE_LOOKS', null, null);
+  renderAll();
+  showToast('Safe looks applied');
 }
 
-function renderStats(){
-  const b=getBuild();
-  const [lbl,cls]=chaosLabel(b.chaos);
-  stats.innerHTML = `Chaos: <span class="${cls}">${b.chaos} (${lbl})</span>`;
+function copyJSON(){
+  navigator.clipboard.writeText(JSON.stringify(currentBuild(), null, 2));
+  showToast('JSON copied');
+}
+
+function importJSON(){
+  const txt = prompt('Paste build JSON');
+  if (!txt) return;
+  try {
+    const obj = JSON.parse(txt);
+    if (obj.name) document.getElementById('buildName').value = obj.name;
+    if (obj.genes) genes.forEach(g => g.pick = (obj.genes[g.name] ?? null));
+    logMutation('IMPORT_JSON', null, null);
+    renderAll();
+    showToast('JSON imported');
+  } catch (e) {
+    alert('Invalid JSON');
+  }
+}
+
+function getSavedBuilds(){
+  try { return JSON.parse(localStorage.getItem(BUILD_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function setSavedBuilds(builds){
+  localStorage.setItem(BUILD_KEY, JSON.stringify(builds.slice(0,10)));
+}
+
+function saveBuild(){
+  const builds = getSavedBuilds();
+  const build = currentBuild();
+  const idx = builds.findIndex(b => b.name === build.name);
+  if (idx >= 0) builds[idx] = build; else builds.unshift(build);
+  setSavedBuilds(builds);
+  renderSaves();
+  showToast('Build saved');
+}
+
+function loadBuild(i){
+  const build = getSavedBuilds()[i];
+  if (!build) return;
+  document.getElementById('buildName').value = build.name || '';
+  genes.forEach(g => g.pick = build.genes?.[g.name] ?? null);
+  renderAll();
+  showToast('Build loaded');
+}
+
+function deleteBuild(i){
+  const builds = getSavedBuilds();
+  builds.splice(i, 1);
+  setSavedBuilds(builds);
+  renderSaves();
+  showToast('Build deleted');
+}
+
+function renderSaves(){
+  const root = document.getElementById('saveList');
+  const builds = getSavedBuilds();
+  root.innerHTML = builds.length ? '' : '<div class="out"><div class="small">No saves yet.</div></div>';
+  builds.forEach((b, i) => {
+    const row = document.createElement('div');
+    row.className = 'out';
+    row.innerHTML = `
+      <div class="save-row">
+        <div>
+          <strong>${b.name}</strong>
+          <div class="small">Chaos ${b.chaos ?? '-'} · ${Object.values(b.genes || {}).filter(Boolean).length} genes set</div>
+        </div>
+        <div class="row" style="width:180px">
+          <button onclick="loadBuild(${i})">Load</button>
+          <button class="secondary" onclick="deleteBuild(${i})">Delete</button>
+        </div>
+      </div>
+    `;
+    root.appendChild(row);
+  });
+
+  const muts = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  document.getElementById('mutationOut').textContent = muts.length
+    ? muts.slice(0,30).map(m => `${new Date(m.ts).toLocaleTimeString()}  ${m.name}  ${m.from ?? '—'} -> ${m.to ?? '—'}`).join('\n')
+    : 'No mutation history yet.';
 }
 
 function trackMods(t){
-  const m={
-    standard:{s:1,st:1,i:1},
+  return {
+    standard:{s:1.0,st:1.0,i:1.0},
     sprint:{s:1.15,st:0.95,i:1.05},
     endurance:{s:0.9,st:1.1,i:0.95},
     mud:{s:0.8,st:0.85,i:1.3},
     uphill:{s:0.75,st:1.2,i:1.1},
     tight:{s:0.9,st:0.7,i:1.3},
-    wet:{s:0.85,st:0.8,i:1.4}
-  };
-  return m[t]||m.standard;
+    wet:{s:0.85,st:0.8,i:1.4},
+  }[t] || {s:1,st:1,i:1};
 }
 
 function chaosMult(c){
-  return c<20?0.8:c<40?1:c<60?1.3:c<85?1.7:2.5;
+  return c < 20 ? 0.8 : c < 40 ? 1 : c < 60 ? 1.3 : c < 85 ? 1.7 : 2.5;
 }
 
-function simulateOne(b, t){
-  const tm=trackMods(t);
-  let perf = (b.speed*tm.s) + (Math.random()*50);
-  const cm = chaosMult(b.chaos) * tm.i;
+function simulateOne(track){
+  const tm = trackMods(track);
+  const scores = scoreTotals();
+  const picks = Object.fromEntries(genes.map(g => [g.name, g.pick]));
+  let perf = (scores.speed * tm.s) + (Math.random() * 50);
+  const cm = chaosMult(chaosIndex(scores)) * tm.i;
 
-  if(b.genes.RAMPAGE==='G' && Math.random()<0.25*cm){
-    return {outcome:'DQ', note:'Aggressive behaviour', perf};
-  }
-  if(b.genes.NARCOLEPSY==='G' && Math.random()<0.15*cm){
-    return {outcome:'DNF', note:'Fell asleep', perf};
-  }
-  if(b.genes.OMNIVORE==='A' && Math.random()<0.1*cm){
-    return {outcome:'DNF', note:'Carnivore mode', perf};
-  }
-  if((b.genes.HIGH_INTELLECT==='T'||b.genes.HIGH_INTELLECT==='G') && Math.random()<0.08*cm){
-    return {outcome:'DNS', note:'Refused to race', perf:0};
-  }
-  if(Math.random()<0.1*cm){
-    return {outcome:'DNF', note:'Lost control', perf};
-  }
+  if (picks.RAMPAGE === 'G' && Math.random() < 0.25 * cm) return {outcome:'DQ', note:'Aggressive behaviour', perf};
+  if (picks.NARCOLEPSY === 'G' && Math.random() < 0.15 * cm) return {outcome:'DNF', note:'Fell asleep', perf};
+  if (picks.OMNIVORE === 'A' && Math.random() < 0.10 * cm) return {outcome:'DNF', note:'Carnivore mode', perf};
+  if ((picks.HIGH_INTELLECT === 'T' || picks.HIGH_INTELLECT === 'G') && Math.random() < 0.08 * cm) return {outcome:'DNS', note:'Refused to race', perf:0};
+  if ((picks.SPINAL_LOCO === 'A' || picks.SPINAL_LOCO === 'G') && picks.LOCO_SYNC !== 'T' && Math.random() < 0.14 * cm) return {outcome:'DNF', note:'Locomotion failure', perf};
+  if (picks.FEAR_RESPONSE === 'G' && Math.random() < 0.10 * cm) return {outcome:'DNF', note:'Spooked by trackside nonsense', perf};
+  if (Math.random() < 0.08 * cm) return {outcome:'DNF', note:'Lost control', perf};
+
   return {outcome:'FINISH', note:'Clean run', perf};
 }
 
 function runSim(){
-  const b=getBuild();
-  const r=+document.getElementById('runs').value;
-  const t=document.getElementById('track').value;
-  const res={WIN:0,PLACE:0,FINISH:0,DNF:0,DQ:0,DNS:0};
-  let total=0,posTotal=0,best=-Infinity,worst=Infinity;
-  const logs=[];
+  const runs = +document.getElementById('simRuns').value;
+  const track = document.getElementById('simTrack').value;
+  const res = {WIN:0, PLACE:0, FINISH:0, DNF:0, DQ:0, DNS:0};
+  let total=0, posTotal=0, best=-Infinity, worst=Infinity;
+  const logs = [];
 
-  for(let i=0;i<r;i++){
-    const s=simulateOne(b,t);
-    let pos=1; const score=s.perf||0;
-
-    for(let j=0;j<7;j++){
-      const opp=(Math.random()*160)+60;
-      if(opp>score) pos++;
+  for (let i=0; i<runs; i++){
+    const s = simulateOne(track);
+    let pos = 1;
+    const score = s.perf || 0;
+    for (let j=0; j<7; j++){
+      const opp = (Math.random() * 160) + 60;
+      if (opp > score) pos++;
     }
-
-    if(s.outcome==='DQ') res.DQ++;
-    else if(s.outcome==='DNF') res.DNF++;
-    else if(s.outcome==='DNS') res.DNS++;
-    else if(pos===1) res.WIN++;
-    else if(pos<=3) res.PLACE++;
+    if (s.outcome === 'DQ') res.DQ++;
+    else if (s.outcome === 'DNF') res.DNF++;
+    else if (s.outcome === 'DNS') res.DNS++;
+    else if (pos === 1) res.WIN++;
+    else if (pos <= 3) res.PLACE++;
     else res.FINISH++;
 
-    total+=score; posTotal+=pos;
-    best=Math.max(best,score); worst=Math.min(worst,score);
-
-    if(logs.length<12){
-      logs.push(`Run ${i+1}: ${s.outcome} - ${s.note} (Pos ${pos})`);
-    }
+    total += score; posTotal += pos;
+    best = Math.max(best, score); worst = Math.min(worst, score);
+    if (logs.length < 12) logs.push(`Run ${i+1}: ${s.outcome} - ${s.note} (Pos ${pos})`);
   }
 
-  const avg=(total/r).toFixed(1);
-  const avgPos=(posTotal/r).toFixed(2);
-  const [lbl,cls]=chaosLabel(b.chaos);
+  const scores = scoreTotals();
+  const chaos = chaosIndex(scores);
+  const [lbl] = chaosLabel(chaos);
+  const avg = (total / runs).toFixed(1);
+  const avgPos = (posTotal / runs).toFixed(2);
 
-  out.textContent =
-`Track: ${t}
-Chaos: ${b.chaos} (${lbl})
+  lastSimText =
+`Track: ${track}
+Chaos: ${chaos} (${lbl})
 
 WIN: ${res.WIN}
 PLACE: ${res.PLACE}
@@ -316,82 +729,34 @@ DNS: ${res.DNS}
 
 Avg Performance: ${avg}
 Avg Position: ${avgPos}
-Best: ${best.toFixed(1)}  Worst: ${worst.toFixed(1)}
+Best Run: ${best.toFixed(1)}
+Worst Run: ${worst.toFixed(1)}
 
 --- LOG ---
-${logs.join('\n')}
-`;
+${logs.join('\n')}`;
+
+  document.getElementById('simOut').textContent = lastSimText;
 }
 
-function copyJSON(){
-  navigator.clipboard.writeText(JSON.stringify(getBuild(),null,2));
-  toast('Copied JSON');
+function copySim(){
+  navigator.clipboard.writeText(lastSimText);
+  showToast('Simulation copied');
 }
 
-function importJSON(){
-  const txt=prompt('Paste JSON');
-  if(!txt) return;
-  try{ applyBuild(JSON.parse(txt)); toast('Loaded'); }
-  catch(e){ alert('Invalid JSON'); }
+function renderJSON(){
+  document.getElementById('jsonOut').textContent = JSON.stringify(currentBuild(), null, 2);
 }
 
-function getSaves(){
-  return JSON.parse(localStorage.getItem('hrp_saves')||'[]');
-}
-function setSaves(s){ localStorage.setItem('hrp_saves', JSON.stringify(s.slice(0,10))); }
-
-function saveBuild(){
-  const name=(saveName.value||'Build '+Date.now()).trim();
-  const s=getSaves();
-  s.unshift({name, data:getBuild(), ts:Date.now()});
-  setSaves(s);
+function renderAll(){
+  renderMetrics();
+  renderGenes();
+  renderJSON();
   renderSaves();
-  toast('Saved');
-  logEvent('save:'+name);
 }
 
-function loadBuild(i){
-  const s=getSaves();
-  if(!s[i]) return;
-  applyBuild(s[i].data);
-  toast('Loaded '+s[i].name);
-}
-
-function deleteBuild(i){
-  const s=getSaves(); s.splice(i,1); setSaves(s); renderSaves();
-}
-
-function renderSaves(){
-  const s=getSaves();
-  saves.innerHTML = s.map((x,i)=>`
-    <div class="row" style="justify-content:space-between">
-      <div><strong>${x.name}</strong> <span class="small">${new Date(x.ts).toLocaleString()}</span></div>
-      <div>
-        <button onclick="loadBuild(${i})">Load</button>
-        <button class="secondary" onclick="deleteBuild(${i})">Delete</button>
-      </div>
-    </div>
-  `).join('') || '<div class="small">No saves yet</div>';
-}
-
-function logEvent(e){
-  const h=JSON.parse(localStorage.getItem('hrp_hist')||'[]');
-  h.unshift({e,ts:Date.now()});
-  localStorage.setItem('hrp_hist', JSON.stringify(h.slice(0,50)));
-}
-
-function toast(t){
-  const d=document.createElement('div');
-  d.textContent=t; d.style.position='fixed'; d.style.bottom='14px'; d.style.left='50%';
-  d.style.transform='translateX(-50%)'; d.style.background='#111827'; d.style.padding='8px 12px';
-  d.style.borderRadius='10px'; d.style.border='1px solid #1f2937';
-  document.body.appendChild(d);
-  setTimeout(()=>d.remove(),1200);
-}
-
-renderStats();
-renderSaves();
+selectBase('A');
+applyPreset('champion');
+renderAll();
 </script>
-
 </body>
 </html>
