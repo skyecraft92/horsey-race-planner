@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Horsey Race Planner Plus</title>
+  <title>Horsey Race Planner Plus v2.1</title>
   <style>
     :root{
       --bg:#0b1020;--panel:#121a2b;--panel2:#0f1726;--border:#23304a;--text:#dbe5f4;--muted:#93a4bf;
@@ -30,7 +30,8 @@
     .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
     .metric{background:#0a1222;border:1px solid var(--border);border-radius:14px;padding:12px}
     .metric .k{font-size:12px;color:var(--muted)}
-    .metric .v{font-size:24px;font-weight:800;margin-top:4px}
+    .metric .v{font-size:24px;font-weight:800;margin-top:4px;line-height:1.1}
+    .metric .sub{font-size:12px;color:var(--muted);margin-top:4px}
     .good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
     .small{font-size:13px;line-height:1.55;color:var(--muted)}
     .gene-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}
@@ -38,7 +39,7 @@
     .name{font-weight:800}
     .meta{font-size:12px;color:var(--muted);margin-top:2px}
     .desc{font-size:13px;color:var(--text);margin-top:8px;line-height:1.45}
-    .group-title{margin:18px 0 6px;color:var(--accent);font-size:14px;font-weight:800;letter-spacing:.03em}
+    .group-title{margin:18px 0 6px;color:var(--accent);font-size:14px;font-weight:800;letter-spacing:.03em;grid-column:1/-1}
     .bases{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
     .base{border:none;border-radius:999px;padding:7px 10px;font-weight:800;cursor:pointer;color:#111;min-width:40px}
     .A{background:var(--A)} .T{background:var(--T)} .C{background:var(--C);color:#fff} .G{background:var(--G)}
@@ -54,8 +55,8 @@
 </head>
 <body>
   <header>
-    <h1>Horsey Race Planner Plus</h1>
-    <p>Import a genome, compare builds, apply safe visual defaults, save named builds, export XML, and generate analyzer-ready 20-helix output. Alarmingly tidy.</p>
+    <h1>Horsey Race Planner Plus — v2.1</h1>
+    <p>Import a genome, compare builds, apply safe visual defaults, save named builds, export XML, and simulate the consequences. Civilisation staggers onward.</p>
   </header>
 
   <div class="wrap">
@@ -127,8 +128,8 @@
         <div class="pill">Safe appearance</div>
         <div class="pill">Named saves</div>
         <div class="pill">XML export</div>
-        <div class="pill">Score breakdown</div>
-        <p>Race-critical genes are editable. The locomotion signal-chain genes are still intentionally off-limits here; that is where a horse ceases to be an athlete and becomes an incident report.</p>
+        <div class="pill">Race simulator</div>
+        <p>Race-critical genes are editable. The locomotion signal-chain genes are still intentionally off-limits here; that is where a horse ceases to be an athlete and becomes a software incident.</p>
       </div>
     </aside>
 
@@ -137,7 +138,7 @@
         <div class="metric"><div class="k">Speed</div><div class="v" id="mSpeed">0</div></div>
         <div class="metric"><div class="k">Stability</div><div class="v" id="mStability">0</div></div>
         <div class="metric"><div class="k">Risk</div><div class="v" id="mRisk">0</div></div>
-        <div class="metric"><div class="k">Chaos Index</div><div class="v" id="mChaos">0</div></div>
+        <div class="metric"><div class="k">Chaos Index</div><div class="v" id="mChaos">0</div><div class="sub" id="mChaosLabel">-</div></div>
         <div class="metric"><div class="k">Verdict</div><div class="v" id="mVerdict">-</div></div>
       </div>
 
@@ -167,6 +168,37 @@
       <div class="out">
         <strong>Gene Score Breakdown</strong>
         <div class="mono" id="scoreBreakdown"></div>
+      </div>
+
+      <div class="out">
+        <strong>Race Simulator</strong>
+        <div class="small">Run simplified Monte Carlo race tests against the current build. The horse may still choose theology over sport.</div>
+        <div class="row" style="margin-top:10px">
+          <div class="field">
+            <label>Simulation Runs</label>
+            <select id="simRuns">
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="250">250</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Track Type</label>
+            <select id="simTrack">
+              <option value="standard">Standard</option>
+              <option value="sprint">Sprint</option>
+              <option value="endurance">Endurance</option>
+              <option value="mud">Mud</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <button id="runSimBtn">Run Simulation</button>
+          <button id="copySimBtn" class="secondary">Copy Results</button>
+        </div>
+        <div class="mono" id="simSummary" style="margin-top:12px">No simulation run yet.</div>
+        <div class="mono" id="simLog" style="margin-top:12px"></div>
       </div>
     </main>
   </div>
@@ -220,7 +252,8 @@ const presets = {
   blank: {}
 };
 
-const BUILD_STORAGE_KEY = 'horsey_builds_v2';
+const BUILD_STORAGE_KEY = 'horsey_builds_v21';
+let lastSimulationText = 'No simulation run yet.';
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -229,8 +262,6 @@ function showToast(msg){
   clearTimeout(showToast._timer);
   showToast._timer = setTimeout(() => t.classList.remove('show'), 1400);
 }
-
-function byName(name){ return genes.find(g => g.name === name); }
 
 function applyPreset(name){
   genes.forEach(g => g.pick = presets[name][g.name] || null);
@@ -257,6 +288,14 @@ function score(){
 
 function chaosIndex(s){
   return Math.max(0, Math.round(s.risk + Math.max(0, 120 - s.stability) * 0.35));
+}
+
+function chaosLabel(value){
+  if(value < 15) return ['Stable', 'good'];
+  if(value < 35) return ['Volatile', 'warn'];
+  if(value < 60) return ['Unstable', 'warn'];
+  if(value < 85) return ['Hazardous', 'bad'];
+  return ['Theological Incident', 'bad'];
 }
 
 function verdict(s){
@@ -334,14 +373,33 @@ function buildXmlPatch(){
 }
 
 function buildScoreBreakdown(){
-  const lines = genes.filter(g => g.pick).map(g => {
-    const b = g.pick;
-    const sp = g.score.speed[b] || 0;
-    const st = g.score.stability[b] || 0;
-    const rk = g.score.risk[b] || 0;
-    return `${g.name.padEnd(15,' ')}  speed:${String(sp).padStart(3,' ')}  stability:${String(st).padStart(3,' ')}  risk:${String(rk).padStart(3,' ')}`;
+  const groups = [
+    ['appearance','Appearance'],
+    ['performance','Performance'],
+    ['stability','Stability'],
+    ['behavior','Behavior'],
+    ['health','Health']
+  ];
+  let totalSpeed = 0, totalStability = 0, totalRisk = 0;
+  const sections = [];
+  groups.forEach(([key, label]) => {
+    const subset = genes.filter(g => g.group === key && g.pick);
+    if(!subset.length) return;
+    sections.push(`[${label}]`);
+    subset.forEach(g => {
+      const b = g.pick;
+      const sp = g.score.speed[b] || 0;
+      const st = g.score.stability[b] || 0;
+      const rk = g.score.risk[b] || 0;
+      totalSpeed += sp;
+      totalStability += st;
+      totalRisk += rk;
+      sections.push(`${g.name.padEnd(15,' ')}  speed:${String(sp).padStart(3,' ')}  stability:${String(st).padStart(3,' ')}  risk:${String(rk).padStart(3,' ')}`);
+    });
+    sections.push('');
   });
-  return lines.length ? lines.join('\n') : 'No active gene selections.';
+  sections.push(`TOTAL            speed:${String(totalSpeed).padStart(3,' ')}  stability:${String(totalStability).padStart(3,' ')}  risk:${String(totalRisk).padStart(3,' ')}`);
+  return sections.join('\n').trim() || 'No active gene selections.';
 }
 
 function getSavedBuilds(){
@@ -411,6 +469,121 @@ function deleteSelectedBuild(){
   refreshSavedBuildsDropdown();
 }
 
+function getTrackModifiers(trackType){
+  return {
+    standard:  {speed:1.0, stability:1.0, incident:1.0, stamina:1.0},
+    sprint:    {speed:1.15, stability:0.95, incident:1.05, stamina:0.9},
+    endurance: {speed:0.9, stability:1.1, incident:0.95, stamina:1.15},
+    mud:       {speed:0.8, stability:0.85, incident:1.3, stamina:1.0}
+  }[trackType] || {speed:1.0, stability:1.0, incident:1.0, stamina:1.0};
+}
+
+function pickMap(){
+  return Object.fromEntries(genes.filter(g => g.pick).map(g => [g.name, g.pick]));
+}
+
+function simulateSingleRace(scores, picks, trackType){
+  const mod = getTrackModifiers(trackType);
+  const basePace = scores.speed * mod.speed + (Math.random() * 24 - 12);
+  const control = scores.stability * mod.stability - scores.risk * 0.55 + (Math.random() * 18 - 9);
+  const chaos = chaosIndex(scores);
+  let incidentChance = Math.max(0.02, (chaos / 100) * 0.22 * mod.incident);
+
+  let outcome = 'FINISH';
+  let note = 'Completed race without scandal.';
+
+  const narcoRoll = picks.NARCOLEPSY === 'G' ? Math.random() < 0.18 * mod.incident : false;
+  const geniusRoll = (picks.HIGH_INTELLECT === 'T' || picks.HIGH_INTELLECT === 'G') ? Math.random() < 0.09 * mod.incident : false;
+  const carnivoreRoll = picks.OMNIVORE === 'A' ? Math.random() < 0.12 * mod.incident : false;
+  const rampageRoll = picks.RAMPAGE === 'G' ? Math.random() < 0.14 * mod.incident : false;
+  const spasmRoll = (picks.BRAIN_SPASTIC === 'A' || picks.BRAIN_SPASTIC === 'G') ? Math.random() < 0.12 * mod.incident : false;
+  const limpRoll = (picks.LIMP === 'C' || picks.LIMP === 'G') ? Math.random() < 0.14 * mod.incident : false;
+  const locoRoll = (picks.SPINAL_LOCO === 'A' || picks.SPINAL_LOCO === 'T' || picks.LOCO_SYNC !== 'T') ? Math.random() < 0.16 * mod.incident : false;
+
+  const hardIncident = narcoRoll || geniusRoll || carnivoreRoll || rampageRoll || spasmRoll || limpRoll || locoRoll || Math.random() < incidentChance;
+
+  if(geniusRoll){
+    return {outcome:'DNS', note:'Refused to race and delivered a philosophical objection.', flags:{narco:false, genius:true, carnivore:false, rampage:false}};
+  }
+  if(narcoRoll){
+    return {outcome: Math.random() < 0.5 ? 'DNS' : 'FAIL', note:'Fell asleep mid-race. Admirably committed to the bit.', flags:{narco:true, genius:false, carnivore:false, rampage:false}};
+  }
+
+  let performanceScore = basePace * 0.65 + control * 0.35;
+  if(trackType === 'endurance') performanceScore += (picks.BREAK_FORCE === 'T' || picks.BREAK_FORCE === 'G') ? 12 : -6;
+  if(trackType === 'mud') performanceScore -= chaos * 0.08;
+  if(rampageRoll) performanceScore -= 20;
+  if(carnivoreRoll) performanceScore -= 24;
+  if(spasmRoll) performanceScore -= 18;
+  if(limpRoll) performanceScore -= 22;
+  if(locoRoll) performanceScore -= 28;
+
+  if(hardIncident && performanceScore < 65){
+    outcome = 'FAIL';
+  } else if(performanceScore >= 145){
+    outcome = 'WIN';
+  } else if(performanceScore >= 118){
+    outcome = 'PLACE';
+  } else if(performanceScore >= 82){
+    outcome = 'FINISH';
+  } else {
+    outcome = hardIncident ? 'FAIL' : 'FINISH';
+  }
+
+  if(carnivoreRoll) note = 'Displayed carnivorous intent toward nearby officials.';
+  else if(rampageRoll) note = 'Became combative at the turn and ignored all sensible advice.';
+  else if(spasmRoll) note = 'Experienced a twitching gait episode but kept moving.';
+  else if(limpRoll) note = 'Developed a dramatic gait issue and lost ground badly.';
+  else if(locoRoll) note = 'Locomotion coherence degraded into interpretive geometry.';
+  else if(outcome === 'WIN') note = 'Clean break from the gate and a ruthless finish. Won convincingly.';
+  else if(outcome === 'PLACE') note = 'Strong pace, mostly sane, finished in the money.';
+  else if(outcome === 'FINISH') note = 'Completed the race without excelling or combusting.';
+  else note = 'An incident occurred and the race became mostly academic.';
+
+  return {outcome, note, flags:{narco:false, genius:false, carnivore:carnivoreRoll, rampage:rampageRoll}};
+}
+
+function runRaceSimulation(runs, trackType){
+  const scores = score();
+  const picks = pickMap();
+  const tally = {WIN:0, PLACE:0, FINISH:0, FAIL:0, DNS:0, narco:0, genius:0, carnivore:0, rampage:0};
+  const logs = [];
+  for(let i=1;i<=runs;i++){
+    const r = simulateSingleRace(scores, picks, trackType);
+    tally[r.outcome]++;
+    if(r.flags.narco) tally.narco++;
+    if(r.flags.genius) tally.genius++;
+    if(r.flags.carnivore) tally.carnivore++;
+    if(r.flags.rampage) tally.rampage++;
+    if(logs.length < 12) logs.push(`Run ${String(i).padStart(3,'0')}: ${r.note}`);
+  }
+  return {runs, trackType, tally, logs};
+}
+
+function formatSimulationSummary(result){
+  const t = result.tally;
+  const pct = n => ((n / result.runs) * 100).toFixed(1);
+  return [
+    `Track: ${result.trackType}`,
+    `Runs: ${result.runs}`,
+    '',
+    `Wins:     ${String(t.WIN).padStart(3,' ')}  (${pct(t.WIN)}%)`,
+    `Places:   ${String(t.PLACE).padStart(3,' ')}  (${pct(t.PLACE)}%)`,
+    `Finishes: ${String(t.FINISH).padStart(3,' ')}  (${pct(t.FINISH)}%)`,
+    `Fails:    ${String(t.FAIL).padStart(3,' ')}  (${pct(t.FAIL)}%)`,
+    `DNS:      ${String(t.DNS).padStart(3,' ')}  (${pct(t.DNS)}%)`,
+    '',
+    `Sleep incidents:      ${t.narco}`,
+    `Genius refusals:      ${t.genius}`,
+    `Carnivore incidents:  ${t.carnivore}`,
+    `Rampage incidents:    ${t.rampage}`
+  ].join('\n');
+}
+
+function formatSimulationLog(events){
+  return events.length ? events.join('\n') : 'No notable events logged.';
+}
+
 function render(){
   const box = document.getElementById('genes');
   box.innerHTML = '';
@@ -461,6 +634,7 @@ function render(){
   const s = score();
   const chaos = chaosIndex(s);
   const [label, cls] = verdict(s);
+  const [cLabel, cClass] = chaosLabel(chaos);
   const setMetric = (id, val, klass='') => {
     const el = document.getElementById(id);
     el.textContent = val;
@@ -470,8 +644,11 @@ function render(){
   setMetric('mSpeed', s.speed, s.speed>120?'good':s.speed>70?'warn':'bad');
   setMetric('mStability', s.stability, s.stability>140?'good':s.stability>80?'warn':'bad');
   setMetric('mRisk', s.risk, s.risk<20?'good':s.risk<60?'warn':'bad');
-  setMetric('mChaos', chaos, chaos<20?'good':chaos<60?'warn':'bad');
+  setMetric('mChaos', chaos, cClass);
   setMetric('mVerdict', label, cls);
+  const chaosEl = document.getElementById('mChaosLabel');
+  chaosEl.textContent = cLabel;
+  chaosEl.className = `sub ${cClass}`;
 
   const fill = document.getElementById('fillBase').value;
   document.getElementById('patch').textContent = buildPatch() || 'No edits selected.';
@@ -497,6 +674,7 @@ document.getElementById('fillBase').onchange = render;
 document.getElementById('copyGenome').onclick = () => copyText(document.getElementById('genome').textContent, 'Genome copied');
 document.getElementById('copyPatch').onclick = () => copyText(document.getElementById('patch').textContent, 'Patch copied');
 document.getElementById('copyXml').onclick = () => copyText(document.getElementById('xmlPatch').textContent, 'XML copied');
+document.getElementById('copySimBtn').onclick = () => copyText(lastSimulationText, 'Simulation results copied');
 
 document.getElementById('importGenomeBtn').onclick = () => {
   const ok = importSelectionsFromGenome(document.getElementById('importGenome').value);
@@ -509,6 +687,18 @@ document.getElementById('saveBuildBtn').onclick = () => { saveCurrentBuild(); sh
 document.getElementById('loadBuildBtn').onclick = () => { loadSelectedBuild(); showToast('Build loaded'); };
 document.getElementById('deleteBuildBtn').onclick = () => { deleteSelectedBuild(); render(); showToast('Build deleted'); };
 document.getElementById('importGenome').addEventListener('input', render);
+
+document.getElementById('runSimBtn').onclick = () => {
+  const runs = Number(document.getElementById('simRuns').value || 100);
+  const track = document.getElementById('simTrack').value || 'standard';
+  const result = runRaceSimulation(runs, track);
+  const summary = formatSimulationSummary(result);
+  const log = formatSimulationLog(result.logs);
+  document.getElementById('simSummary').textContent = summary;
+  document.getElementById('simLog').textContent = log;
+  lastSimulationText = summary + '\n\n' + log;
+  showToast('Simulation complete');
+};
 
 refreshSavedBuildsDropdown();
 applyPreset('race');
