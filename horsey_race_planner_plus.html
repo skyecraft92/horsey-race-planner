@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Horsey Race Planner Plus</title>
+  <style>
+    :root{
+      --bg:#0b1020;--panel:#121a2b;--panel2:#0f1726;--border:#23304a;--text:#dbe5f4;--muted:#93a4bf;
+      --accent:#66b3ff;--good:#8df0b1;--warn:#ffd166;--bad:#ff9b9b;--A:#eab308;--T:#ef4444;
+      --C:#3b82f6;--G:#22c55e;--toast:#1a2740
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,sans-serif;background:linear-gradient(180deg,#08101d,#0b1020);color:var(--text)}
+    header{padding:20px 24px;border-bottom:1px solid var(--border);background:rgba(15,23,38,.9);position:sticky;top:0;backdrop-filter:blur(10px);z-index:5}
+    h1{margin:0 0 6px;font-size:22px}
+    header p{margin:0;color:var(--muted)}
+    .wrap{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .side{padding:16px;position:sticky;top:92px;height:fit-content}
+    .main{padding:16px}
+    .field{margin-bottom:12px}
+    .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select,textarea{width:100%;max-width:100%;background:#091120;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font:inherit}
+    textarea{min-height:140px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    button{width:100%;padding:11px 12px;border-radius:12px;border:1px solid #3c7bcf;background:linear-gradient(180deg,#184b86,#113664);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+    button.secondary{background:transparent;border-color:var(--border);color:var(--text)}
+    .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+    .metric{background:#0a1222;border:1px solid var(--border);border-radius:14px;padding:12px}
+    .metric .k{font-size:12px;color:var(--muted)}
+    .metric .v{font-size:24px;font-weight:800;margin-top:4px}
+    .good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .small{font-size:13px;line-height:1.55;color:var(--muted)}
+    .gene-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}
+    .gene{background:#0a1222;border:1px solid var(--border);border-radius:14px;padding:12px}
+    .name{font-weight:800}
+    .meta{font-size:12px;color:var(--muted);margin-top:2px}
+    .desc{font-size:13px;color:var(--text);margin-top:8px;line-height:1.45}
+    .group-title{margin:18px 0 6px;color:var(--accent);font-size:14px;font-weight:800;letter-spacing:.03em}
+    .bases{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+    .base{border:none;border-radius:999px;padding:7px 10px;font-weight:800;cursor:pointer;color:#111;min-width:40px}
+    .A{background:var(--A)} .T{background:var(--T)} .C{background:var(--C);color:#fff} .G{background:var(--G)}
+    .selected{outline:2px solid #fff;outline-offset:2px}
+    .out{background:#08101d;border:1px solid var(--border);border-radius:14px;padding:12px;margin-top:14px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--muted);margin:0 6px 6px 0}
+    .toast{position:fixed;right:16px;bottom:16px;background:var(--toast);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);box-shadow:0 10px 25px rgba(0,0,0,.3);opacity:0;transform:translateY(8px);transition:all .2s ease;pointer-events:none;z-index:20}
+    .toast.show{opacity:1;transform:translateY(0)}
+    @media (max-width:980px){.wrap{grid-template-columns:1fr}.side{position:static}.metrics{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:700px){.gene-list{grid-template-columns:1fr}.row,.row3{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Horsey Race Planner Plus</h1>
+    <p>Import a genome, compare builds, apply safe visual defaults, save named builds, export XML, and generate analyzer-ready 20-helix output. Alarmingly tidy.</p>
+  </header>
+
+  <div class="wrap">
+    <aside class="card side">
+      <div class="field">
+        <label>Preset</label>
+        <select id="preset">
+          <option value="race">Super Fast & Stable</option>
+          <option value="chaos">Break Reality</option>
+          <option value="blank">Blank / Manual</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Base fill for untouched genes</label>
+        <select id="fillBase">
+          <option value="A">A</option>
+          <option value="T">T</option>
+          <option value="C">C</option>
+          <option value="G">G</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button id="applyPreset">Apply Preset</button>
+        <button id="reset" class="secondary">Reset</button>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button id="copyGenome" class="secondary">Copy Genome</button>
+        <button id="copyPatch" class="secondary">Copy Patch</button>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button id="importGenomeBtn" class="secondary">Import Genome</button>
+        <button id="safeLooksBtn" class="secondary">Safe Looks</button>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button id="copyXml" class="secondary">Copy XML</button>
+        <button id="saveBuildBtn" class="secondary">Save Build</button>
+      </div>
+
+      <div class="field" style="margin-top:12px">
+        <label>Build name</label>
+        <input id="buildName" type="text" placeholder="Champion Template" maxlength="40" />
+      </div>
+
+      <div class="field">
+        <label>Saved builds</label>
+        <select id="savedBuilds">
+          <option value="">Select a saved build...</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button id="loadBuildBtn" class="secondary">Load Build</button>
+        <button id="deleteBuildBtn" class="secondary">Delete Build</button>
+      </div>
+
+      <div class="field" style="margin-top:12px">
+        <label>Paste Existing Genome Block</label>
+        <textarea id="importGenome" placeholder="Paste the full 20-helix block here..."></textarea>
+      </div>
+
+      <div class="out small">
+        <div class="pill">Genome import</div>
+        <div class="pill">Build compare</div>
+        <div class="pill">Safe appearance</div>
+        <div class="pill">Named saves</div>
+        <div class="pill">XML export</div>
+        <div class="pill">Score breakdown</div>
+        <p>Race-critical genes are editable. The locomotion signal-chain genes are still intentionally off-limits here; that is where a horse ceases to be an athlete and becomes an incident report.</p>
+      </div>
+    </aside>
+
+    <main class="card main">
+      <div class="metrics">
+        <div class="metric"><div class="k">Speed</div><div class="v" id="mSpeed">0</div></div>
+        <div class="metric"><div class="k">Stability</div><div class="v" id="mStability">0</div></div>
+        <div class="metric"><div class="k">Risk</div><div class="v" id="mRisk">0</div></div>
+        <div class="metric"><div class="k">Chaos Index</div><div class="v" id="mChaos">0</div></div>
+        <div class="metric"><div class="k">Verdict</div><div class="v" id="mVerdict">-</div></div>
+      </div>
+
+      <div class="gene-list" id="genes"></div>
+
+      <div class="out">
+        <strong>Patch Summary</strong>
+        <div class="mono" id="patch"></div>
+      </div>
+
+      <div class="out">
+        <strong>20-Helix Genome Block</strong>
+        <div class="mono" id="genome"></div>
+      </div>
+
+      <div class="out">
+        <strong>Comparison</strong>
+        <div class="small">Shows differences between the imported genome and the current edited build.</div>
+        <div class="mono" id="compare"></div>
+      </div>
+
+      <div class="out">
+        <strong>XML Patch</strong>
+        <div class="mono" id="xmlPatch"></div>
+      </div>
+
+      <div class="out">
+        <strong>Gene Score Breakdown</strong>
+        <div class="mono" id="scoreBreakdown"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast">Copied</div>
+
+<script>
+const HELIX_LENGTHS = [10,13,13,15,11,8,10,8,11,11,13,15,13,11,11,13,15,11,11,16];
+
+const genes = [
+  {name:'SIZE', helix:6, pos:0, group:'appearance', desc:'Safer body scale baseline.', score:{speed:{T:0,A:0,C:0,G:0}, stability:{T:2,A:1,C:0,G:1}, risk:{T:0,A:2,C:4,G:1}}, pick:null},
+  {name:'HEAD_SIZE', helix:10, pos:0, group:'appearance', desc:'Keeps the head from becoming a public enquiry.', score:{speed:{A:0,T:0,C:0,G:0}, stability:{A:2,G:1,T:0,C:0}, risk:{A:0,G:1,T:4,C:5}}, pick:null},
+  {name:'LEG_LENGTH', helix:8, pos:1, group:'appearance', desc:'Helps preserve proportionate limbs.', score:{speed:{C:4,G:3,A:2,T:0}, stability:{G:4,A:3,C:2,T:0}, risk:{G:0,A:1,C:3,T:5}}, pick:null},
+  {name:'TAIL_EXISTS', helix:7, pos:1, group:'appearance', desc:'Useful if you prefer horses with tails.', score:{speed:{A:0,C:0,G:0,T:0}, stability:{A:2,C:2,G:2,T:-3}, risk:{A:0,C:0,G:0,T:6}}, pick:null},
+  {name:'FOOT_IS_HOOF', helix:17, pos:1, group:'appearance', desc:'Keeps the feet usefully hoof-shaped.', score:{speed:{T:2,G:2,A:0,C:0}, stability:{T:4,G:4,A:0,C:0}, risk:{T:0,G:0,A:3,C:3}}, pick:null},
+  {name:'HAS_MOUTH', helix:12, pos:1, group:'appearance', desc:'Optional, but reassuring.', score:{speed:{A:0,T:0,G:0,C:0}, stability:{A:2,T:2,G:2,C:-5}, risk:{A:0,T:0,G:0,C:8}}, pick:null},
+
+  {name:'MUSCLE_USE', helix:2, pos:0, group:'performance', desc:'Core force multiplier. High is fast; too silly elsewhere can get weird.', score:{speed:{G:35,C:35,A:20,T:5}, stability:{G:8,C:8,A:6,T:4}, risk:{G:6,C:6,A:2,T:0}}, pick:'G'},
+  {name:'SPEED_FACTOR', helix:18, pos:1, group:'performance', desc:'Primary speed gene.', score:{speed:{G:40,A:28,C:18,T:5}, stability:{G:8,A:6,C:5,T:4}, risk:{G:4,A:2,C:1,T:0}}, pick:'G'},
+  {name:'BREAK_FORCE', helix:4, pos:9, group:'performance', desc:'Stamina drain. T or G is effectively infinite stamina.', score:{speed:{T:25,G:25,A:5,C:2}, stability:{T:12,G:12,A:5,C:4}, risk:{T:2,G:2,A:1,C:1}}, pick:'T'},
+
+  {name:'SPINAL_LOCO', helix:18, pos:4, group:'stability', desc:'0 keeps standard leg locomotion. Exactly what we want for racing.', score:{speed:{C:10,G:10,T:2,A:-8}, stability:{C:25,G:25,T:10,A:-20}, risk:{C:0,G:0,T:6,A:20}}, pick:'C'},
+  {name:'LOCO_SYNC', helix:18, pos:10, group:'stability', desc:'Synchronized gait. T is the saintly choice.', score:{speed:{T:10,A:6,C:6,G:6}, stability:{T:30,A:5,C:5,G:5}, risk:{T:0,A:10,C:10,G:10}}, pick:'T'},
+  {name:'LIMP', helix:1, pos:12, group:'stability', desc:'Do try not to build a racehorse with a limp.', score:{speed:{A:8,T:8,C:-20,G:-10}, stability:{A:20,T:20,C:-30,G:-12}, risk:{A:0,T:0,C:20,G:8}}, pick:'T'},
+  {name:'BRAIN_SPASTIC', helix:2, pos:12, group:'stability', desc:'T or C disables twitching. Marvellous for not exploding sideways.', score:{speed:{T:5,C:5,G:-10,A:-20}, stability:{T:22,C:22,G:8,A:-25}, risk:{T:0,C:0,G:6,A:20}}, pick:'T'},
+  {name:'NECK_STIFF', helix:0, pos:9, group:'stability', desc:'Rigid neck can make motion odd. Keep it off.', score:{speed:{A:6,C:6,T:1,G:1}, stability:{A:15,C:15,T:4,G:4}, risk:{A:0,C:0,T:6,G:6}}, pick:'A'},
+  {name:'STIFF_JOINTS', helix:3, pos:14, group:'stability', desc:'Keep it loose. T or C is cleanest.', score:{speed:{T:8,C:8,G:2,A:-10}, stability:{T:18,C:18,G:6,A:-18}, risk:{T:0,C:0,G:4,A:12}}, pick:'T'},
+  {name:'OLD_AGE', helix:1, pos:10, group:'stability', desc:'Avoid degradation for the build template.', score:{speed:{A:6,T:6,C:10,G:-8}, stability:{A:16,T:16,C:6,G:-10}, risk:{A:0,T:0,C:6,G:10}}, pick:'T'},
+
+  {name:'OMNIVORE', helix:1, pos:11, group:'behavior', desc:'Predator horse is funny, but not ideal track etiquette.', score:{speed:{T:4,C:4,G:4,A:-4}, stability:{T:12,C:12,G:12,A:-6}, risk:{T:0,C:0,G:0,A:16}}, pick:'T'},
+  {name:'NARCOLEPSY', helix:18, pos:0, group:'behavior', desc:'Horse randomly falling asleep is suboptimal.', score:{speed:{A:8,T:8,C:8,G:-20}, stability:{A:20,T:20,C:20,G:-30}, risk:{A:0,T:0,C:0,G:28}}, pick:'T'},
+  {name:'RAMPAGE', helix:18, pos:3, group:'behavior', desc:'Aggression and bolting. Great cinema, poor lap times.', score:{speed:{A:6,T:6,C:6,G:-12}, stability:{A:18,T:18,C:18,G:-20}, risk:{A:0,T:0,C:0,G:24}}, pick:'T'},
+  {name:'HIGH_INTELLECT', helix:18, pos:5, group:'behavior', desc:'Can progress to genius state and refuse to race. Very modern.', score:{speed:{A:8,C:8,T:2,G:2}, stability:{A:18,C:18,T:8,G:8}, risk:{A:0,C:0,T:10,G:10}}, pick:'A'},
+
+  {name:'FLU_IMMUNITY', helix:12, pos:12, group:'health', desc:'Simple quality-of-life. G for immunity.', score:{speed:{G:6,A:0,T:0,C:0}, stability:{G:8,A:0,T:0,C:0}, risk:{G:0,A:0,T:0,C:0}}, pick:'G'}
+];
+
+const presets = {
+  race: {
+    SIZE:'T', HEAD_SIZE:'A', LEG_LENGTH:'G', TAIL_EXISTS:'A', FOOT_IS_HOOF:'T', HAS_MOUTH:'A',
+    MUSCLE_USE:'G', SPEED_FACTOR:'G', BREAK_FORCE:'T', SPINAL_LOCO:'C', LOCO_SYNC:'T',
+    LIMP:'T', BRAIN_SPASTIC:'T', NECK_STIFF:'A', OMNIVORE:'T', NARCOLEPSY:'T',
+    RAMPAGE:'T', HIGH_INTELLECT:'A', FLU_IMMUNITY:'G', STIFF_JOINTS:'T', OLD_AGE:'T'
+  },
+  chaos: {
+    SIZE:'C', HEAD_SIZE:'T', LEG_LENGTH:'T', TAIL_EXISTS:'T', FOOT_IS_HOOF:'A', HAS_MOUTH:'C',
+    MUSCLE_USE:'G', SPEED_FACTOR:'G', BREAK_FORCE:'A', SPINAL_LOCO:'A', LOCO_SYNC:'A',
+    LIMP:'C', BRAIN_SPASTIC:'A', NECK_STIFF:'T', OMNIVORE:'A', NARCOLEPSY:'G',
+    RAMPAGE:'G', HIGH_INTELLECT:'T', FLU_IMMUNITY:'G', STIFF_JOINTS:'A', OLD_AGE:'G'
+  },
+  blank: {}
+};
+
+const BUILD_STORAGE_KEY = 'horsey_builds_v2';
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 1400);
+}
+
+function byName(name){ return genes.find(g => g.name === name); }
+
+function applyPreset(name){
+  genes.forEach(g => g.pick = presets[name][g.name] || null);
+  document.getElementById('preset').value = name;
+  render();
+}
+
+function resetAll(){
+  genes.forEach(g => g.pick = null);
+  render();
+}
+
+function score(){
+  let speed=0, stability=0, risk=0;
+  genes.forEach(g => {
+    const b = g.pick;
+    if(!b) return;
+    speed += g.score.speed[b] || 0;
+    stability += g.score.stability[b] || 0;
+    risk += g.score.risk[b] || 0;
+  });
+  return {speed, stability, risk};
+}
+
+function chaosIndex(s){
+  return Math.max(0, Math.round(s.risk + Math.max(0, 120 - s.stability) * 0.35));
+}
+
+function verdict(s){
+  const total = s.speed + s.stability - s.risk;
+  const chaos = chaosIndex(s);
+  if(chaos > 85) return ['Theological Incident', 'bad'];
+  if(s.risk > 80) return ['Chaotic', 'bad'];
+  if(total > 200 && s.stability > 170) return ['Champion', 'good'];
+  if(total > 140) return ['Strong', 'good'];
+  if(total > 80) return ['Usable', 'warn'];
+  return ['Questionable', 'bad'];
+}
+
+function parseGenomeBlock(text){
+  const helices = [];
+  const helixRe = /Helix\s+(\d+)\.\)\s*([ATCG]+)/g;
+  let m;
+  while((m = helixRe.exec(text)) !== null){
+    helices[Number(m[1])] = m[2].trim().split('');
+  }
+  return helices.length ? helices : null;
+}
+
+function importSelectionsFromGenome(text){
+  const helices = parseGenomeBlock(text);
+  if(!helices) return false;
+  genes.forEach(g => {
+    const row = helices[g.helix];
+    g.pick = row && row[g.pos] ? row[g.pos] : null;
+  });
+  return true;
+}
+
+function currentGenomeArray(fill='A'){
+  const helices = HELIX_LENGTHS.map(len => Array(len).fill(fill));
+  genes.forEach(g => {
+    if(g.pick) helices[g.helix][g.pos] = g.pick;
+  });
+  return helices;
+}
+
+function buildGenome(fill='A'){
+  const helices = currentGenomeArray(fill);
+  return helices.map((arr, i) => `Helix ${i}.) ${arr.join('')}\nSecond Strand: ${arr.join('')}`).join('\n\n');
+}
+
+function buildPatch(){
+  return genes.filter(g => g.pick).map(g => `Helix ${g.helix} Pos ${g.pos}  ${g.name.padEnd(15,' ')} = ${g.pick}`).join('\n');
+}
+
+function applySafeLooks(){
+  const safe = {SIZE:'T', HEAD_SIZE:'A', LEG_LENGTH:'G', TAIL_EXISTS:'A', FOOT_IS_HOOF:'T', HAS_MOUTH:'A'};
+  genes.forEach(g => { if(safe[g.name]) g.pick = safe[g.name]; });
+}
+
+function buildComparison(fill='A'){
+  const text = document.getElementById('importGenome').value.trim();
+  if(!text) return 'No imported genome to compare.';
+  const imported = parseGenomeBlock(text);
+  if(!imported) return 'Imported genome could not be parsed. Check the Helix X.) format.';
+  const current = currentGenomeArray(fill);
+  const lines = [];
+  genes.forEach(g => {
+    const oldBase = imported[g.helix] && imported[g.helix][g.pos] ? imported[g.helix][g.pos] : '?';
+    const newBase = current[g.helix][g.pos];
+    if(oldBase !== newBase){
+      lines.push(`${g.name.padEnd(15,' ')} H${g.helix}:P${g.pos}  ${oldBase} -> ${newBase}`);
+    }
+  });
+  return lines.length ? lines.join('\n') : 'No differences across tracked genes.';
+}
+
+function buildXmlPatch(){
+  return genes.filter(g => g.pick).map(g => `<gene name="${g.name}" value="${g.pick}" />`).join('\n');
+}
+
+function buildScoreBreakdown(){
+  const lines = genes.filter(g => g.pick).map(g => {
+    const b = g.pick;
+    const sp = g.score.speed[b] || 0;
+    const st = g.score.stability[b] || 0;
+    const rk = g.score.risk[b] || 0;
+    return `${g.name.padEnd(15,' ')}  speed:${String(sp).padStart(3,' ')}  stability:${String(st).padStart(3,' ')}  risk:${String(rk).padStart(3,' ')}`;
+  });
+  return lines.length ? lines.join('\n') : 'No active gene selections.';
+}
+
+function getSavedBuilds(){
+  try { return JSON.parse(localStorage.getItem(BUILD_STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function setSavedBuilds(builds){
+  localStorage.setItem(BUILD_STORAGE_KEY, JSON.stringify(builds.slice(0,10)));
+}
+
+function serializeCurrentBuild(){
+  return {
+    name: document.getElementById('buildName').value.trim() || 'Unnamed Build',
+    preset: document.getElementById('preset').value,
+    fillBase: document.getElementById('fillBase').value,
+    picks: Object.fromEntries(genes.filter(g => g.pick).map(g => [g.name, g.pick]))
+  };
+}
+
+function applySerializedBuild(build){
+  document.getElementById('preset').value = build.preset || 'blank';
+  document.getElementById('fillBase').value = build.fillBase || 'A';
+  document.getElementById('buildName').value = build.name || '';
+  genes.forEach(g => {
+    g.pick = build.picks && build.picks[g.name] ? build.picks[g.name] : null;
+  });
+}
+
+function refreshSavedBuildsDropdown(){
+  const sel = document.getElementById('savedBuilds');
+  const builds = getSavedBuilds();
+  sel.innerHTML = '<option value="">Select a saved build...</option>';
+  builds.forEach((b, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = b.name || `Build ${i + 1}`;
+    sel.appendChild(opt);
+  });
+}
+
+function saveCurrentBuild(){
+  const build = serializeCurrentBuild();
+  const builds = getSavedBuilds();
+  const existing = builds.findIndex(b => b.name === build.name);
+  if(existing >= 0) builds[existing] = build;
+  else builds.push(build);
+  setSavedBuilds(builds);
+  refreshSavedBuildsDropdown();
+}
+
+function loadSelectedBuild(){
+  const idx = document.getElementById('savedBuilds').value;
+  if(idx === '') return;
+  const builds = getSavedBuilds();
+  if(!builds[idx]) return;
+  applySerializedBuild(builds[idx]);
+  render();
+}
+
+function deleteSelectedBuild(){
+  const idx = document.getElementById('savedBuilds').value;
+  if(idx === '') return;
+  const builds = getSavedBuilds();
+  builds.splice(Number(idx), 1);
+  setSavedBuilds(builds);
+  refreshSavedBuildsDropdown();
+}
+
+function render(){
+  const box = document.getElementById('genes');
+  box.innerHTML = '';
+
+  const groups = [
+    ['appearance','Appearance Safety'],
+    ['performance','Performance'],
+    ['stability','Stability'],
+    ['behavior','Behavior'],
+    ['health','Health']
+  ];
+
+  groups.forEach(([key, label]) => {
+    const subset = genes.filter(g => g.group === key);
+    if(!subset.length) return;
+    const title = document.createElement('div');
+    title.className = 'group-title';
+    title.textContent = label;
+    box.appendChild(title);
+
+    subset.forEach(g => {
+      const div = document.createElement('div');
+      div.className = 'gene';
+      div.innerHTML = `<div class="name">${g.name}</div><div class="meta">Helix ${g.helix} · Position ${g.pos}</div><div class="desc">${g.desc}</div>`;
+      const bases = document.createElement('div');
+      bases.className = 'bases';
+      ['A','T','C','G'].forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = `base ${b} ${g.pick===b?'selected':''}`;
+        btn.textContent = b;
+        btn.title = `${g.name} = ${b}`;
+        btn.onclick = () => { g.pick = b; render(); };
+        bases.appendChild(btn);
+      });
+      const clear = document.createElement('button');
+      clear.className = 'base';
+      clear.style.color = 'var(--text)';
+      clear.style.background = '#162235';
+      clear.textContent = '—';
+      clear.title = 'Unset';
+      clear.onclick = () => { g.pick = null; render(); };
+      bases.appendChild(clear);
+      div.appendChild(bases);
+      box.appendChild(div);
+    });
+  });
+
+  const s = score();
+  const chaos = chaosIndex(s);
+  const [label, cls] = verdict(s);
+  const setMetric = (id, val, klass='') => {
+    const el = document.getElementById(id);
+    el.textContent = val;
+    el.className = `v ${klass}`;
+  };
+
+  setMetric('mSpeed', s.speed, s.speed>120?'good':s.speed>70?'warn':'bad');
+  setMetric('mStability', s.stability, s.stability>140?'good':s.stability>80?'warn':'bad');
+  setMetric('mRisk', s.risk, s.risk<20?'good':s.risk<60?'warn':'bad');
+  setMetric('mChaos', chaos, chaos<20?'good':chaos<60?'warn':'bad');
+  setMetric('mVerdict', label, cls);
+
+  const fill = document.getElementById('fillBase').value;
+  document.getElementById('patch').textContent = buildPatch() || 'No edits selected.';
+  document.getElementById('genome').textContent = buildGenome(fill);
+  document.getElementById('compare').textContent = buildComparison(fill);
+  document.getElementById('xmlPatch').textContent = buildXmlPatch() || 'No XML patch available.';
+  document.getElementById('scoreBreakdown').textContent = buildScoreBreakdown();
+}
+
+async function copyText(text, okMessage){
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(okMessage);
+  } catch {
+    showToast('Clipboard copy failed');
+  }
+}
+
+document.getElementById('applyPreset').onclick = () => applyPreset(document.getElementById('preset').value);
+document.getElementById('reset').onclick = resetAll;
+document.getElementById('fillBase').onchange = render;
+
+document.getElementById('copyGenome').onclick = () => copyText(document.getElementById('genome').textContent, 'Genome copied');
+document.getElementById('copyPatch').onclick = () => copyText(document.getElementById('patch').textContent, 'Patch copied');
+document.getElementById('copyXml').onclick = () => copyText(document.getElementById('xmlPatch').textContent, 'XML copied');
+
+document.getElementById('importGenomeBtn').onclick = () => {
+  const ok = importSelectionsFromGenome(document.getElementById('importGenome').value);
+  if(ok){ render(); showToast('Genome imported'); }
+  else showToast('Genome parse failed');
+};
+
+document.getElementById('safeLooksBtn').onclick = () => { applySafeLooks(); render(); showToast('Safe looks applied'); };
+document.getElementById('saveBuildBtn').onclick = () => { saveCurrentBuild(); showToast('Build saved'); };
+document.getElementById('loadBuildBtn').onclick = () => { loadSelectedBuild(); showToast('Build loaded'); };
+document.getElementById('deleteBuildBtn').onclick = () => { deleteSelectedBuild(); render(); showToast('Build deleted'); };
+document.getElementById('importGenome').addEventListener('input', render);
+
+refreshSavedBuildsDropdown();
+applyPreset('race');
+</script>
+</body>
+</html>
