@@ -3,127 +3,311 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Horsey Race Planner v3.1</title>
-
+<title>Horsey Race Planner v3.2</title>
 <style>
-body{font-family:Arial;background:#0b0f14;color:#e6edf3;margin:0;padding:16px}
-h1{margin:0 0 8px 0}
-.panel{background:#111827;border-radius:12px;padding:12px;margin:10px 0}
-.row{display:flex;flex-wrap:wrap;gap:8px}
-button{padding:8px 12px;border-radius:8px;border:none;background:#2563eb;color:white;cursor:pointer}
-.secondary{background:#374151}
-.small{opacity:0.7;font-size:12px}
-.warn{color:#f59e0b}
-.bad{color:#ef4444}
-.good{color:#22c55e}
-pre{white-space:pre-wrap}
+:root{--bg:#0b0f14;--panel:#111827;--muted:#9aa4b2;--blue:#2563eb;--blue2:#1f4fd6;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;background:var(--bg);color:#e6edf3;margin:0;padding:14px}
+h1{margin:0 0 6px 0}
+.small{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:8px;margin:10px 0}
+.tab{padding:8px 12px;background:#1f2937;border-radius:10px;cursor:pointer}
+.tab.active{background:var(--blue)}
+.panel{background:var(--panel);border-radius:14px;padding:12px;margin:10px 0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+label{font-size:12px;color:var(--muted)}
+select,input[type=range],input[type=text]{width:100%;padding:6px;border-radius:8px;border:none;background:#0f172a;color:#e6edf3}
+button{padding:8px 12px;border-radius:10px;border:none;background:var(--blue);color:white}
+button.secondary{background:#374151}
+button:active{transform:translateY(1px)}
+.bad{color:var(--bad)} .warn{color:var(--warn)} .good{color:var(--ok)}
+pre{white-space:pre-wrap;background:#0f172a;border-radius:10px;padding:10px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0f172a;margin-left:6px}
 </style>
 </head>
-
 <body>
 
-<h1>Horsey Race Planner v3.1</h1>
-<div class="small">Simulation Lab Build</div>
+<h1>Horsey Race Planner v3.2</h1>
+<div class="small">Editor + History + Upgraded Simulator (Chaos-aware)</div>
 
-<div class="panel">
-<div class="row">
-<button onclick="runSim()">Run Simulation</button>
-<button onclick="copyJSON()">Copy JSON</button>
-<button onclick="importJSON()">Import JSON</button>
-</div>
+<div class="tabs">
+  <div id="t_editor" class="tab active" onclick="tab('editor')">Editor</div>
+  <div id="t_sim" class="tab" onclick="tab('sim')">Simulator</div>
+  <div id="t_hist" class="tab" onclick="tab('hist')">History</div>
 </div>
 
-<div class="panel">
-<strong>Stats</strong>
-<div id="stats"></div>
+<!-- EDITOR -->
+<div id="editor" class="panel">
+  <div class="row">
+    <button onclick="applyPreset('champion')">Champion</button>
+    <button onclick="applyPreset('balanced')">Balanced</button>
+    <button onclick="applyPreset('chaos')">Break Reality</button>
+    <button class="secondary" onclick="applySafeLooks()">Safe Looks</button>
+  </div>
+
+  <div class="grid" style="margin-top:8px">
+    <div>
+      <label>Speed</label>
+      <input id="speed" type="range" min="50" max="200" value="130" oninput="renderStats()">
+    </div>
+    <div>
+      <label>Stability</label>
+      <input id="stability" type="range" min="50" max="150" value="95" oninput="renderStats()">
+    </div>
+    <div>
+      <label>Risk</label>
+      <input id="risk" type="range" min="0" max="100" value="20" oninput="renderStats()">
+    </div>
+    <div>
+      <label>Chaos Index</label>
+      <input id="chaos" type="range" min="0" max="100" value="40" oninput="renderStats()">
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:8px">
+    <!-- curated gene set -->
+    <div>
+      <label>MUSCLE_USE</label>
+      <select id="MUSCLE_USE"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>SPEED_FACTOR</label>
+      <select id="SPEED_FACTOR"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>LOCO_SYNC</label>
+      <select id="LOCO_SYNC"><option>A</option><option>T</option><option selected>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>SPINAL_LOCO</label>
+      <select id="SPINAL_LOCO"><option>A</option><option>T</option><option selected>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>NARCOLEPSY</label>
+      <select id="NARCOLEPSY"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>RAMPAGE</label>
+      <select id="RAMPAGE"><option>A</option><option selected>G</option><option>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>HIGH_INTELLECT</label>
+      <select id="HIGH_INTELLECT"><option>A</option><option selected>T</option><option>G</option><option>C</option></select>
+    </div>
+    <div>
+      <label>OMNIVORE</label>
+      <select id="OMNIVORE"><option selected>A</option><option>G</option><option>T</option><option>C</option></select>
+    </div>
+    <div>
+      <label>SIZE</label>
+      <select id="SIZE"><option selected>T</option><option>A</option><option>G</option><option>C</option></select>
+    </div>
+    <div>
+      <label>LEG_LENGTH</label>
+      <select id="LEG_LENGTH"><option selected>G</option><option>A</option><option>T</option><option>C</option></select>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <button onclick="copyJSON()">Copy JSON</button>
+    <button class="secondary" onclick="importJSON()">Import JSON</button>
+    <button class="secondary" onclick="saveBuild()">Save Build</button>
+    <input id="saveName" placeholder="Name build…" style="flex:1">
+  </div>
+
+  <div class="panel" style="margin-top:10px">
+    <strong>Stats</strong>
+    <div id="stats"></div>
+  </div>
 </div>
 
-<div class="panel">
-<strong>Simulation Output</strong>
-<pre id="out"></pre>
+<!-- SIM -->
+<div id="sim" class="panel" style="display:none">
+  <div class="row">
+    <label>Runs</label>
+    <select id="runs">
+      <option>25</option><option>50</option><option selected>100</option><option>250</option>
+    </select>
+    <label>Track</label>
+    <select id="track">
+      <option value="standard">Standard</option>
+      <option value="sprint">Sprint</option>
+      <option value="endurance">Endurance</option>
+      <option value="mud">Mud</option>
+      <option value="uphill">Uphill</option>
+      <option value="tight">Tight Circuit</option>
+      <option value="wet">Wet Grass</option>
+    </select>
+    <button onclick="runSim()">Run Simulation</button>
+  </div>
+
+  <div class="panel">
+    <pre id="out"></pre>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="hist" class="panel" style="display:none">
+  <strong>Saved Builds</strong>
+  <div id="saves"></div>
+  <div class="small">Stored in localStorage (up to 10)</div>
 </div>
 
 <script>
-let build={
- speed:130,
- stability:95,
- risk:20,
- chaos:40,
- genes:{RAMPAGE:'G',NARCOLEPSY:'G',HIGH_INTELLECT:'T',OMNIVORE:'A'}
-};
-
-function chaosLabel(v){
- if(v<15)return["Stable","good"];
- if(v<35)return["Volatile","warn"];
- if(v<60)return["Unstable","warn"];
- if(v<85)return["Hazardous","bad"];
- return["Theological Incident","bad"];
+function tab(t){
+  ['editor','sim','hist'].forEach(id=>{
+    document.getElementById(id).style.display = (id===t?'block':'none');
+    document.getElementById('t_'+id).classList.toggle('active', id===t);
+  });
 }
 
-function simulateOne(){
- let perf = build.speed + (Math.random()*50);
- let chaosMult = build.chaos<20?0.8:build.chaos<40?1:build.chaos<60?1.3:build.chaos<85?1.7:2.5;
+function chaosLabel(v){
+  if(v<15) return ['Stable','good'];
+  if(v<35) return ['Volatile','warn'];
+  if(v<60) return ['Unstable','warn'];
+  if(v<85) return ['Hazardous','bad'];
+  return ['Theological Incident','bad'];
+}
 
- if(build.genes.RAMPAGE==='G' && Math.random()<0.25){
-  return{outcome:"DQ",note:"Aggressive behaviour",perf};
- }
- if(build.genes.NARCOLEPSY==='G' && Math.random()<0.15*chaosMult){
-  return{outcome:"DNF",note:"Fell asleep",perf};
- }
- if(build.genes.OMNIVORE==='A' && Math.random()<0.1*chaosMult){
-  return{outcome:"DNF",note:"Carnivore mode",perf};
- }
- if(build.genes.HIGH_INTELLECT==='T' && Math.random()<0.08*chaosMult){
-  return{outcome:"DNS",note:"Refused race",perf:0};
- }
- if(Math.random()<0.1*chaosMult){
-  return{outcome:"DNF",note:"Lost control",perf};
- }
+function getBuild(){
+  return {
+    speed:+speed.value,
+    stability:+stability.value,
+    risk:+risk.value,
+    chaos:+chaos.value,
+    genes:{
+      MUSCLE_USE: MUSCLE_USE.value,
+      SPEED_FACTOR: SPEED_FACTOR.value,
+      LOCO_SYNC: LOCO_SYNC.value,
+      SPINAL_LOCO: SPINAL_LOCO.value,
+      NARCOLEPSY: NARCOLEPSY.value,
+      RAMPAGE: RAMPAGE.value,
+      HIGH_INTELLECT: HIGH_INTELLECT.value,
+      OMNIVORE: OMNIVORE.value,
+      SIZE: SIZE.value,
+      LEG_LENGTH: LEG_LENGTH.value
+    }
+  };
+}
 
- return{outcome:"FINISH",note:"Clean run",perf};
+function applyBuild(b){
+  speed.value=b.speed; stability.value=b.stability; risk.value=b.risk; chaos.value=b.chaos;
+  Object.entries(b.genes||{}).forEach(([k,v])=>{ if(window[k]) window[k].value=v; });
+  renderStats();
+}
+
+function applyPreset(p){
+  const b = getBuild();
+  if(p==='champion'){
+    b.speed=170; b.stability=120; b.risk=10; b.chaos=20;
+    b.genes.MUSCLE_USE='G'; b.genes.SPEED_FACTOR='G'; b.genes.LOCO_SYNC='T'; b.genes.SPINAL_LOCO='T';
+    b.genes.NARCOLEPSY='A'; b.genes.RAMPAGE='A'; b.genes.HIGH_INTELLECT='A'; b.genes.OMNIVORE='A';
+  } else if(p==='balanced'){
+    b.speed=140; b.stability=110; b.risk=20; b.chaos=35;
+  } else {
+    b.speed=160; b.stability=80; b.risk=60; b.chaos=85;
+    b.genes.RAMPAGE='G'; b.genes.NARCOLEPSY='G'; b.genes.HIGH_INTELLECT='T'; b.genes.OMNIVORE='A';
+    b.genes.SPINAL_LOCO='A'; b.genes.LOCO_SYNC='A';
+  }
+  applyBuild(b);
+  logEvent('preset:'+p);
+}
+
+function applySafeLooks(){
+  const b=getBuild();
+  b.genes.SIZE='T'; b.genes.LEG_LENGTH='G';
+  applyBuild(b);
+  logEvent('safeLooks');
+}
+
+function renderStats(){
+  const b=getBuild();
+  const [lbl,cls]=chaosLabel(b.chaos);
+  stats.innerHTML = `Chaos: <span class="${cls}">${b.chaos} (${lbl})</span>`;
+}
+
+function trackMods(t){
+  const m={
+    standard:{s:1,st:1,i:1},
+    sprint:{s:1.15,st:0.95,i:1.05},
+    endurance:{s:0.9,st:1.1,i:0.95},
+    mud:{s:0.8,st:0.85,i:1.3},
+    uphill:{s:0.75,st:1.2,i:1.1},
+    tight:{s:0.9,st:0.7,i:1.3},
+    wet:{s:0.85,st:0.8,i:1.4}
+  };
+  return m[t]||m.standard;
+}
+
+function chaosMult(c){
+  return c<20?0.8:c<40?1:c<60?1.3:c<85?1.7:2.5;
+}
+
+function simulateOne(b, t){
+  const tm=trackMods(t);
+  let perf = (b.speed*tm.s) + (Math.random()*50);
+  const cm = chaosMult(b.chaos) * tm.i;
+
+  if(b.genes.RAMPAGE==='G' && Math.random()<0.25*cm){
+    return {outcome:'DQ', note:'Aggressive behaviour', perf};
+  }
+  if(b.genes.NARCOLEPSY==='G' && Math.random()<0.15*cm){
+    return {outcome:'DNF', note:'Fell asleep', perf};
+  }
+  if(b.genes.OMNIVORE==='A' && Math.random()<0.1*cm){
+    return {outcome:'DNF', note:'Carnivore mode', perf};
+  }
+  if((b.genes.HIGH_INTELLECT==='T'||b.genes.HIGH_INTELLECT==='G') && Math.random()<0.08*cm){
+    return {outcome:'DNS', note:'Refused to race', perf:0};
+  }
+  if(Math.random()<0.1*cm){
+    return {outcome:'DNF', note:'Lost control', perf};
+  }
+  return {outcome:'FINISH', note:'Clean run', perf};
 }
 
 function runSim(){
- let runs=100;
- let res={WIN:0,PLACE:0,FINISH:0,DNF:0,DQ:0,DNS:0};
- let total=0,posTotal=0;
- let best=-Infinity,worst=Infinity;
- let logs=[];
+  const b=getBuild();
+  const r=+document.getElementById('runs').value;
+  const t=document.getElementById('track').value;
+  const res={WIN:0,PLACE:0,FINISH:0,DNF:0,DQ:0,DNS:0};
+  let total=0,posTotal=0,best=-Infinity,worst=Infinity;
+  const logs=[];
 
- for(let i=0;i<runs;i++){
-  let r=simulateOne();
-  let pos=1;
-  let score=r.perf||0;
+  for(let i=0;i<r;i++){
+    const s=simulateOne(b,t);
+    let pos=1; const score=s.perf||0;
 
-  for(let j=0;j<7;j++){
-   if((Math.random()*160+60)>score) pos++;
+    for(let j=0;j<7;j++){
+      const opp=(Math.random()*160)+60;
+      if(opp>score) pos++;
+    }
+
+    if(s.outcome==='DQ') res.DQ++;
+    else if(s.outcome==='DNF') res.DNF++;
+    else if(s.outcome==='DNS') res.DNS++;
+    else if(pos===1) res.WIN++;
+    else if(pos<=3) res.PLACE++;
+    else res.FINISH++;
+
+    total+=score; posTotal+=pos;
+    best=Math.max(best,score); worst=Math.min(worst,score);
+
+    if(logs.length<12){
+      logs.push(`Run ${i+1}: ${s.outcome} - ${s.note} (Pos ${pos})`);
+    }
   }
 
-  if(r.outcome==="DQ")res.DQ++;
-  else if(r.outcome==="DNF")res.DNF++;
-  else if(r.outcome==="DNS")res.DNS++;
-  else if(pos===1)res.WIN++;
-  else if(pos<=3)res.PLACE++;
-  else res.FINISH++;
+  const avg=(total/r).toFixed(1);
+  const avgPos=(posTotal/r).toFixed(2);
+  const [lbl,cls]=chaosLabel(b.chaos);
 
-  total+=score;
-  posTotal+=pos;
-  best=Math.max(best,score);
-  worst=Math.min(worst,score);
+  out.textContent =
+`Track: ${t}
+Chaos: ${b.chaos} (${lbl})
 
-  if(logs.length<12){
-   logs.push(`Run ${i+1}: ${r.outcome} - ${r.note} (Pos ${pos})`);
-  }
- }
-
- let avg=(total/runs).toFixed(1);
- let avgPos=(posTotal/runs).toFixed(2);
- let c=chaosLabel(build.chaos);
-
- document.getElementById("stats").innerHTML=`Chaos: <span class="${c[1]}">${build.chaos} (${c[0]})</span>`;
-
- document.getElementById("out").textContent=
-`WIN: ${res.WIN}
+WIN: ${res.WIN}
 PLACE: ${res.PLACE}
 FINISH: ${res.FINISH}
 DNF: ${res.DNF}
@@ -132,26 +316,81 @@ DNS: ${res.DNS}
 
 Avg Performance: ${avg}
 Avg Position: ${avgPos}
-
-Best Run: ${best.toFixed(1)}
-Worst Run: ${worst.toFixed(1)}
+Best: ${best.toFixed(1)}  Worst: ${worst.toFixed(1)}
 
 --- LOG ---
-${logs.join("\n")}
+${logs.join('\n')}
 `;
 }
 
 function copyJSON(){
- navigator.clipboard.writeText(JSON.stringify(build,null,2));
- alert("Copied");
+  navigator.clipboard.writeText(JSON.stringify(getBuild(),null,2));
+  toast('Copied JSON');
 }
 
 function importJSON(){
- let txt=prompt("Paste JSON");
- if(!txt)return;
- try{build=JSON.parse(txt);alert("Loaded");}
- catch(e){alert("Invalid JSON");}
+  const txt=prompt('Paste JSON');
+  if(!txt) return;
+  try{ applyBuild(JSON.parse(txt)); toast('Loaded'); }
+  catch(e){ alert('Invalid JSON'); }
 }
+
+function getSaves(){
+  return JSON.parse(localStorage.getItem('hrp_saves')||'[]');
+}
+function setSaves(s){ localStorage.setItem('hrp_saves', JSON.stringify(s.slice(0,10))); }
+
+function saveBuild(){
+  const name=(saveName.value||'Build '+Date.now()).trim();
+  const s=getSaves();
+  s.unshift({name, data:getBuild(), ts:Date.now()});
+  setSaves(s);
+  renderSaves();
+  toast('Saved');
+  logEvent('save:'+name);
+}
+
+function loadBuild(i){
+  const s=getSaves();
+  if(!s[i]) return;
+  applyBuild(s[i].data);
+  toast('Loaded '+s[i].name);
+}
+
+function deleteBuild(i){
+  const s=getSaves(); s.splice(i,1); setSaves(s); renderSaves();
+}
+
+function renderSaves(){
+  const s=getSaves();
+  saves.innerHTML = s.map((x,i)=>`
+    <div class="row" style="justify-content:space-between">
+      <div><strong>${x.name}</strong> <span class="small">${new Date(x.ts).toLocaleString()}</span></div>
+      <div>
+        <button onclick="loadBuild(${i})">Load</button>
+        <button class="secondary" onclick="deleteBuild(${i})">Delete</button>
+      </div>
+    </div>
+  `).join('') || '<div class="small">No saves yet</div>';
+}
+
+function logEvent(e){
+  const h=JSON.parse(localStorage.getItem('hrp_hist')||'[]');
+  h.unshift({e,ts:Date.now()});
+  localStorage.setItem('hrp_hist', JSON.stringify(h.slice(0,50)));
+}
+
+function toast(t){
+  const d=document.createElement('div');
+  d.textContent=t; d.style.position='fixed'; d.style.bottom='14px'; d.style.left='50%';
+  d.style.transform='translateX(-50%)'; d.style.background='#111827'; d.style.padding='8px 12px';
+  d.style.borderRadius='10px'; d.style.border='1px solid #1f2937';
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),1200);
+}
+
+renderStats();
+renderSaves();
 </script>
 
 </body>
